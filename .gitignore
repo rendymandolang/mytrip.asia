@@ -1,0 +1,25 @@
+# Environment
+.env
+.env.*
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Next.js
+.next/
+out/
+
+# NestJS
+dist/
+
+# Prisma
+generated/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
