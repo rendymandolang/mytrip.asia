@@ -19,7 +19,7 @@ export default function LoginPage() {
 
     try {
       const response = await fetch(
-        "http://103.168.147.148:3001/auth/login",
+        "/api/auth/login",
         {
           method: "POST",
           headers: {

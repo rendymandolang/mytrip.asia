@@ -16,7 +16,7 @@ export default function PropertiesPage() {
       localStorage.getItem("token");
 
     const response = await fetch(
-      "http://103.168.147.148:3001/properties",
+      "/api/properties",
       {
         headers: {
           Authorization: `Bearer ${token}`,
