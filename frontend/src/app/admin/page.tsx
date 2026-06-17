@@ -53,15 +53,18 @@ export default function AdminPage() {
             </p>
           </Link>
 
-          <div className="rounded-lg bg-white p-6 shadow">
+          <Link
+            href="/admin/bookings"
+            className="rounded-lg bg-white p-6 shadow transition hover:shadow-lg"
+          >
             <h2 className="text-xl font-bold">
               Bookings
             </h2>
 
             <p className="mt-2 text-gray-500">
-              Coming Soon
+              Manage reservations
             </p>
-          </div>
+          </Link>
 
           <button
             onClick={logout}
@@ -69,6 +72,44 @@ export default function AdminPage() {
           >
             Logout
           </button>
+        </div>
+
+        <div className="mt-10 rounded-lg bg-white p-6 shadow">
+          <h2 className="mb-4 text-xl font-bold">
+            System Status
+          </h2>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded border p-4">
+              <div className="text-sm text-gray-500">
+                Properties Module
+              </div>
+
+              <div className="mt-2 font-semibold text-green-600">
+                Active
+              </div>
+            </div>
+
+            <div className="rounded border p-4">
+              <div className="text-sm text-gray-500">
+                Rooms Module
+              </div>
+
+              <div className="mt-2 font-semibold text-green-600">
+                Active
+              </div>
+            </div>
+
+            <div className="rounded border p-4">
+              <div className="text-sm text-gray-500">
+                Bookings Module
+              </div>
+
+              <div className="mt-2 font-semibold text-green-600">
+                Active
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
