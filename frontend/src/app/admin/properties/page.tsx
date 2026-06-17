@@ -6,6 +6,9 @@ import Link from "next/link";
 export default function PropertiesPage() {
   const [properties, setProperties] = useState<any[]>([]);
 
+  const [editingId, setEditingId] =
+    useState<number | null>(null);
+
   const [name, setName] = useState("");
   const [propertyType, setPropertyType] =
     useState("HOTEL");
@@ -45,6 +48,16 @@ export default function PropertiesPage() {
     }
   }
 
+  function resetForm() {
+    setEditingId(null);
+
+    setName("");
+    setPropertyType("HOTEL");
+    setCity("");
+    setCountry("Indonesia");
+    setDescription("");
+  }
+
   async function createProperty(
     e: React.FormEvent,
   ) {
@@ -81,11 +94,7 @@ export default function PropertiesPage() {
         );
       }
 
-      setName("");
-      setPropertyType("HOTEL");
-      setCity("");
-      setCountry("Indonesia");
-      setDescription("");
+      resetForm();
 
       await loadProperties();
 
@@ -100,6 +109,130 @@ export default function PropertiesPage() {
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function updateProperty(
+    e: React.FormEvent,
+  ) {
+    e.preventDefault();
+
+    if (!editingId) return;
+
+    try {
+      setLoading(true);
+
+      const token =
+        localStorage.getItem("token");
+
+      const response = await fetch(
+        `/api/properties/${editingId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name,
+            propertyType,
+            city,
+            country,
+            description,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to update property",
+        );
+      }
+
+      resetForm();
+
+      await loadProperties();
+
+      alert(
+        "Property updated successfully",
+      );
+    } catch (error) {
+      console.error(error);
+
+      alert(
+        "Failed to update property",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function editProperty(property: any) {
+    setEditingId(property.id);
+
+    setName(property.name || "");
+
+    setPropertyType(
+      property.propertyType || "HOTEL",
+    );
+
+    setCity(property.city || "");
+
+    setCountry(
+      property.country || "Indonesia",
+    );
+
+    setDescription(
+      property.description || "",
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  async function deleteProperty(
+    id: number,
+  ) {
+    const confirmed = confirm(
+      "Delete this property?",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await fetch(
+        `/api/properties/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to delete property",
+        );
+      }
+
+      await loadProperties();
+
+      alert(
+        "Property deleted successfully",
+      );
+    } catch (error) {
+      console.error(error);
+
+      alert(
+        "Failed to delete property",
+      );
     }
   }
 
@@ -120,11 +253,17 @@ export default function PropertiesPage() {
 
       <div className="mb-8 rounded-lg bg-white p-6 shadow">
         <h2 className="mb-4 text-xl font-semibold">
-          Add Property
+          {editingId
+            ? "Edit Property"
+            : "Add Property"}
         </h2>
 
         <form
-          onSubmit={createProperty}
+          onSubmit={
+            editingId
+              ? updateProperty
+              : createProperty
+          }
           className="grid gap-4 md:grid-cols-2"
         >
           <input
@@ -199,12 +338,24 @@ export default function PropertiesPage() {
           <button
             type="submit"
             disabled={loading}
-            className="rounded bg-green-600 px-6 py-3 text-white md:col-span-2"
+            className="rounded bg-green-600 px-6 py-3 text-white"
           >
             {loading
               ? "Saving..."
-              : "Save Property"}
+              : editingId
+                ? "Update Property"
+                : "Save Property"}
           </button>
+
+          {editingId && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded bg-slate-500 px-6 py-3 text-white"
+            >
+              Cancel Edit
+            </button>
+          )}
         </form>
       </div>
 
@@ -226,6 +377,9 @@ export default function PropertiesPage() {
               </th>
               <th className="p-4 text-left">
                 Country
+              </th>
+              <th className="p-4 text-left">
+                Actions
               </th>
             </tr>
           </thead>
@@ -257,6 +411,32 @@ export default function PropertiesPage() {
 
                   <td className="p-4">
                     {property.country}
+                  </td>
+
+                  <td className="p-4">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          editProperty(
+                            property,
+                          )
+                        }
+                        className="rounded bg-amber-500 px-3 py-1 text-white"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          deleteProperty(
+                            property.id,
+                          )
+                        }
+                        className="rounded bg-red-600 px-3 py-1 text-white"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ),
