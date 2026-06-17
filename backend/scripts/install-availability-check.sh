@@ -1,3 +1,8 @@
+#!/bin/bash
+
+echo "Installing Availability Check into BookingsService..."
+
+cat > src/bookings/bookings.service.ts << 'EOF'
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -100,3 +105,6 @@ export class BookingsService {
     });
   }
 }
+EOF
+
+echo "Availability Check Installed Successfully"
