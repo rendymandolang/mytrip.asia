@@ -23,13 +23,13 @@ export default function AdminPage() {
 
       <div className="p-8">
         <p className="mb-8 text-gray-600">
-          Welcome to MYTRIP Management System
+          Welcome to MYTRIP Property Management System
         </p>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Link
             href="/admin/properties"
-            className="rounded-lg bg-white p-6 shadow hover:shadow-lg"
+            className="rounded-lg bg-white p-6 shadow transition hover:shadow-lg"
           >
             <h2 className="text-xl font-bold">
               Properties
@@ -40,15 +40,18 @@ export default function AdminPage() {
             </p>
           </Link>
 
-          <div className="rounded-lg bg-white p-6 shadow">
+          <Link
+            href="/admin/rooms"
+            className="rounded-lg bg-white p-6 shadow transition hover:shadow-lg"
+          >
             <h2 className="text-xl font-bold">
               Rooms
             </h2>
 
             <p className="mt-2 text-gray-500">
-              Coming Soon
+              Manage rooms and rates
             </p>
-          </div>
+          </Link>
 
           <div className="rounded-lg bg-white p-6 shadow">
             <h2 className="text-xl font-bold">
@@ -62,7 +65,7 @@ export default function AdminPage() {
 
           <button
             onClick={logout}
-            className="rounded-lg bg-red-600 p-6 text-white shadow hover:bg-red-700"
+            className="rounded-lg bg-red-600 p-6 text-white shadow transition hover:bg-red-700"
           >
             Logout
           </button>
