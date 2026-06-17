@@ -5,22 +5,17 @@ import Link from "next/link";
 
 export default function RoomsPage() {
   const [rooms, setRooms] = useState<any[]>([]);
-  const [properties, setProperties] =
-    useState<any[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
 
-  const [propertyId, setPropertyId] =
-    useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
 
+  const [propertyId, setPropertyId] = useState("");
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
-  const [capacity, setCapacity] =
-    useState("");
+  const [capacity, setCapacity] = useState("");
+  const [description, setDescription] = useState("");
 
-  const [description, setDescription] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadRooms();
@@ -28,41 +23,39 @@ export default function RoomsPage() {
   }, []);
 
   async function loadRooms() {
-    const token =
-      localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-    const response = await fetch(
-      "/api/rooms",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+    const response = await fetch("/api/rooms", {
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-    );
+    });
 
-    const data =
-      await response.json();
-
+    const data = await response.json();
     setRooms(data);
   }
 
   async function loadProperties() {
-    const token =
-      localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-    const response = await fetch(
-      "/api/properties",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+    const response = await fetch("/api/properties", {
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-    );
+    });
 
-    const data =
-      await response.json();
-
+    const data = await response.json();
     setProperties(data);
+  }
+
+  function resetForm() {
+    setEditingId(null);
+
+    setPropertyId("");
+    setName("");
+    setPrice("");
+    setCapacity("");
+    setDescription("");
   }
 
   async function createRoom(
@@ -98,31 +91,140 @@ export default function RoomsPage() {
       );
 
       if (!response.ok) {
-        throw new Error(
-          "Failed to create room",
-        );
+        throw new Error();
       }
 
-      setPropertyId("");
-      setName("");
-      setPrice("");
-      setCapacity("");
-      setDescription("");
-
+      resetForm();
       await loadRooms();
 
       alert(
         "Room created successfully",
       );
-    } catch (error) {
-      console.error(error);
-
+    } catch {
       alert(
         "Failed to create room",
       );
     } finally {
       setLoading(false);
     }
+  }
+
+  async function updateRoom(
+    e: React.FormEvent,
+  ) {
+    e.preventDefault();
+
+    if (!editingId) return;
+
+    try {
+      setLoading(true);
+
+      const token =
+        localStorage.getItem("token");
+
+      const response = await fetch(
+        `/api/rooms/${editingId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            propertyId:
+              Number(propertyId),
+            name,
+            price,
+            capacity:
+              Number(capacity),
+            description,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error();
+      }
+
+      resetForm();
+      await loadRooms();
+
+      alert(
+        "Room updated successfully",
+      );
+    } catch {
+      alert(
+        "Failed to update room",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteRoom(
+    id: number,
+  ) {
+    if (
+      !confirm(
+        "Delete this room?",
+      )
+    ) {
+      return;
+    }
+
+    const token =
+      localStorage.getItem("token");
+
+    const response = await fetch(
+      `/api/rooms/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      alert(
+        "Failed to delete room",
+      );
+      return;
+    }
+
+    await loadRooms();
+
+    alert(
+      "Room deleted successfully",
+    );
+  }
+
+  function editRoom(room: any) {
+    setEditingId(room.id);
+
+    setPropertyId(
+      String(room.propertyId),
+    );
+
+    setName(room.name || "");
+
+    setPrice(
+      String(room.price || ""),
+    );
+
+    setCapacity(
+      String(room.capacity || ""),
+    );
+
+    setDescription(
+      room.description || "",
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   }
 
   return (
@@ -142,11 +244,17 @@ export default function RoomsPage() {
 
       <div className="mb-8 rounded-lg bg-white p-6 shadow">
         <h2 className="mb-4 text-xl font-semibold">
-          Add Room
+          {editingId
+            ? "Edit Room"
+            : "Add Room"}
         </h2>
 
         <form
-          onSubmit={createRoom}
+          onSubmit={
+            editingId
+              ? updateRoom
+              : createRoom
+          }
           className="grid gap-4 md:grid-cols-2"
         >
           <select
@@ -180,7 +288,9 @@ export default function RoomsPage() {
             placeholder="Room Name"
             value={name}
             onChange={(e) =>
-              setName(e.target.value)
+              setName(
+                e.target.value,
+              )
             }
             className="rounded border p-3"
             required
@@ -191,7 +301,9 @@ export default function RoomsPage() {
             placeholder="Price"
             value={price}
             onChange={(e) =>
-              setPrice(e.target.value)
+              setPrice(
+                e.target.value,
+              )
             }
             className="rounded border p-3"
             required
@@ -211,6 +323,7 @@ export default function RoomsPage() {
           />
 
           <textarea
+            rows={4}
             placeholder="Description"
             value={description}
             onChange={(e) =>
@@ -218,19 +331,30 @@ export default function RoomsPage() {
                 e.target.value,
               )
             }
-            rows={4}
             className="rounded border p-3 md:col-span-2"
           />
 
           <button
             type="submit"
             disabled={loading}
-            className="rounded bg-green-600 px-6 py-3 text-white md:col-span-2"
+            className="rounded bg-green-600 px-6 py-3 text-white"
           >
             {loading
               ? "Saving..."
+              : editingId
+              ? "Update Room"
               : "Save Room"}
           </button>
+
+          {editingId && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded bg-slate-500 px-6 py-3 text-white"
+            >
+              Cancel Edit
+            </button>
+          )}
         </form>
       </div>
 
@@ -252,6 +376,9 @@ export default function RoomsPage() {
               </th>
               <th className="p-4 text-left">
                 Capacity
+              </th>
+              <th className="p-4 text-left">
+                Actions
               </th>
             </tr>
           </thead>
@@ -283,6 +410,32 @@ export default function RoomsPage() {
 
                 <td className="p-4">
                   {room.capacity}
+                </td>
+
+                <td className="p-4">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        editRoom(
+                          room,
+                        )
+                      }
+                      className="rounded bg-amber-500 px-3 py-1 text-white"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        deleteRoom(
+                          room.id,
+                        )
+                      }
+                      className="rounded bg-red-600 px-3 py-1 text-white"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
