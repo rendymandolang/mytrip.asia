@@ -1,235 +1,340 @@
-import Image from "next/image";
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+const propertyTypes = [
+  ["", "All Property"],
+  ["APARTMENT", "Apartment"],
+  ["VILLA", "Villa"],
+  ["HOTEL", "Hotel"],
+  ["RESORT", "Resort"],
+  ["CO_LIVING", "Co-Living"],
+];
+
+const bedroomTypes = [
+  ["", "Any Room"],
+  ["STUDIO", "Studio"],
+  ["ONE_BR", "1BR"],
+  ["TWO_BR", "2BR"],
+  ["THREE_BR_PLUS", "3BR+"],
+];
+
+const rentalTerms = [
+  ["DAILY", "Daily"],
+  ["MONTHLY", "Monthly"],
+  ["YEARLY", "Yearly"],
+];
+
+const sortOptions = [
+  ["rating", "Best Rating"],
+  ["price_asc", "Lowest Price"],
+  ["price_desc", "Highest Price"],
+  ["newest", "Newest"],
+];
+
+function formatCurrency(value: number | null) {
+  if (!value) {
+    return "Ask price";
+  }
+
+  return `Rp ${Number(value).toLocaleString("id-ID")}`;
+}
+
+function coverImage(property: any) {
+  return property.coverImage || "/images/logo.png";
+}
 
 export default function HomePage() {
-  return (
-    <main className="bg-white">
+  const [destinations, setDestinations] = useState<any[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [destination, setDestination] = useState("");
+  const [propertyType, setPropertyType] = useState("");
+  const [bedroomType, setBedroomType] = useState("");
+  const [rentalTerm, setRentalTerm] = useState("MONTHLY");
+  const [sort, setSort] = useState("rating");
+  const [loading, setLoading] = useState(false);
 
-      {/* NAVBAR */}
-      <header className="sticky top-0 z-50 border-b bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Image
+  useEffect(() => {
+    loadDestinations();
+    searchProperties();
+  }, []);
+
+  async function loadDestinations() {
+    const response = await fetch(
+      "/api/catalog/destinations",
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      setDestinations(data);
+
+      const bali = data.find(
+        (item: any) => item.slug === "indonesia-bali",
+      );
+
+      if (bali) {
+        setDestination(bali.slug);
+      }
+    }
+  }
+
+  async function searchProperties(
+    e?: React.FormEvent,
+  ) {
+    e?.preventDefault();
+
+    try {
+      setLoading(true);
+
+      const params = new URLSearchParams();
+
+      if (destination) {
+        params.set("destination", destination);
+      }
+
+      if (propertyType) {
+        params.set("propertyType", propertyType);
+      }
+
+      if (bedroomType) {
+        params.set("bedroomType", bedroomType);
+      }
+
+      if (rentalTerm) {
+        params.set("rentalTerm", rentalTerm);
+      }
+
+      params.set("sort", sort);
+
+      const response = await fetch(
+        `/api/catalog/properties?${params.toString()}`,
+      );
+
+      if (response.ok) {
+        setProperties(await response.json());
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+          <Link href="/" className="flex items-center gap-3">
+            <img
               src="/images/logo.png"
               alt="MYTRIP Asia"
-              width={45}
-              height={45}
+              className="h-11 w-11 rounded"
             />
+            <div>
+              <div className="text-xl font-bold">
+                MYTRIP Asia
+              </div>
+              <div className="text-xs text-slate-500">
+                Stay, lease, and manage properties
+              </div>
+            </div>
+          </Link>
 
-            <span className="text-xl font-bold">
-              MYTRIP Asia
-            </span>
-          </div>
-
-          <a
+          <Link
             href="/login"
-            className="rounded-lg bg-blue-600 px-5 py-2 text-white"
+            className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
           >
-            Admin Login
-          </a>
+            Partner Login
+          </Link>
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-sky-900 via-blue-700 to-cyan-600" />
+      <section className="border-b bg-white">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+          <div>
+            <div className="mb-3 text-sm font-semibold uppercase text-blue-700">
+              MYTRIP Property Search
+            </div>
+            <h1 className="max-w-3xl text-4xl font-bold tracking-normal md:text-6xl">
+              Find stays for daily trips and longer
+              living across Asia.
+            </h1>
+            <p className="mt-4 max-w-2xl text-slate-600">
+              Search apartments, villas, hotels,
+              resorts, and co-living units by
+              destination, room type, and rental
+              period.
+            </p>
+          </div>
 
-        <div className="relative mx-auto max-w-7xl px-6 py-28 text-center text-white">
-          <h1 className="text-5xl font-extrabold md:text-7xl">
-            Explore Asia
-            <br />
-            With MYTRIP
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-3xl text-lg text-white/90">
-            Hotels, Villas, Resorts, Transportation,
-            Tours and Hospitality Solutions in one
-            integrated platform.
-          </p>
-
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <button className="rounded-xl bg-white px-8 py-4 font-semibold text-blue-700 shadow-lg">
-              Search Properties
-            </button>
-
-            <button className="rounded-xl border border-white px-8 py-4">
-              Learn More
-            </button>
+          <div className="overflow-hidden rounded-lg bg-slate-900">
+            <img
+              src="/images/logo.png"
+              alt="MYTRIP Asia property catalog"
+              className="mx-auto h-72 w-72 object-contain p-10"
+            />
           </div>
         </div>
       </section>
 
-      {/* DESTINATIONS */}
-      <section className="mx-auto max-w-7xl px-6 py-24">
-        <div className="mb-12 text-center">
-          <h2 className="text-4xl font-bold">
-            Featured Destinations
+      <section className="mx-auto max-w-7xl px-5 py-6">
+        <form
+          onSubmit={searchProperties}
+          className="grid gap-3 rounded-lg bg-white p-4 shadow md:grid-cols-2 xl:grid-cols-6"
+        >
+          <select
+            value={destination}
+            onChange={(e) =>
+              setDestination(e.target.value)
+            }
+            className="rounded border border-slate-200 p-3"
+          >
+            <option value="">All Destinations</option>
+            {destinations.map((item) => (
+              <option key={item.id} value={item.slug}>
+                {item.displayName}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={propertyType}
+            onChange={(e) =>
+              setPropertyType(e.target.value)
+            }
+            className="rounded border border-slate-200 p-3"
+          >
+            {propertyTypes.map(([value, label]) => (
+              <option key={label} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={bedroomType}
+            onChange={(e) =>
+              setBedroomType(e.target.value)
+            }
+            className="rounded border border-slate-200 p-3"
+          >
+            {bedroomTypes.map(([value, label]) => (
+              <option key={label} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={rentalTerm}
+            onChange={(e) =>
+              setRentalTerm(e.target.value)
+            }
+            className="rounded border border-slate-200 p-3"
+          >
+            {rentalTerms.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="rounded border border-slate-200 p-3"
+          >
+            {sortOptions.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="submit"
+            className="rounded bg-blue-600 px-5 py-3 font-semibold text-white"
+          >
+            {loading ? "Searching..." : "Search"}
+          </button>
+        </form>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 pb-14">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-2xl font-bold">
+            Available Properties
           </h2>
-
-          <p className="mt-4 text-gray-600">
-            Discover the most popular destinations
-            across Indonesia and Asia.
-          </p>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-4">
-          <div className="rounded-2xl bg-slate-100 p-10 text-center shadow">
-            Bali
-          </div>
-
-          <div className="rounded-2xl bg-slate-100 p-10 text-center shadow">
-            Bunaken
-          </div>
-
-          <div className="rounded-2xl bg-slate-100 p-10 text-center shadow">
-            Raja Ampat
-          </div>
-
-          <div className="rounded-2xl bg-slate-100 p-10 text-center shadow">
-            Labuan Bajo
+          <div className="text-sm text-slate-500">
+            {properties.length} result
+            {properties.length === 1 ? "" : "s"}
           </div>
         </div>
+
+        {properties.length === 0 ? (
+          <div className="rounded-lg bg-white p-8 text-slate-500 shadow">
+            No property found for this search.
+          </div>
+        ) : (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {properties.map((property) => (
+              <Link
+                key={property.id}
+                href={`/properties/${property.slug || property.id}`}
+                className="overflow-hidden rounded-lg bg-white shadow transition hover:shadow-lg"
+              >
+                <div className="aspect-[4/3] bg-slate-100">
+                  <img
+                    src={coverImage(property)}
+                    alt={property.name}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+
+                <div className="p-5">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
+                      {property.propertyType}
+                    </span>
+                    <span className="text-sm font-semibold text-amber-600">
+                      {property.rating.toFixed(1)} / 5
+                    </span>
+                  </div>
+
+                  <h3 className="line-clamp-2 text-lg font-bold">
+                    {property.name}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {property.area
+                      ? `${property.area}, `
+                      : ""}
+                    {property.city || property.country}
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {property.supportedRentalTerms.map(
+                      (term: string) => (
+                        <span
+                          key={term}
+                          className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700"
+                        >
+                          {term}
+                        </span>
+                      ),
+                    )}
+                  </div>
+
+                  <div className="mt-4 text-lg font-bold">
+                    {formatCurrency(property.minPrice)}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    Starting price
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
-
-      {/* SERVICES */}
-      <section className="bg-slate-50 py-24">
-        <div className="mx-auto max-w-7xl px-6">
-
-          <div className="mb-14 text-center">
-            <h2 className="text-4xl font-bold">
-              Our Ecosystem
-            </h2>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-
-            <div className="rounded-2xl bg-white p-8 shadow">
-              <h3 className="text-xl font-bold">
-                Hotels
-              </h3>
-
-              <p className="mt-3 text-gray-600">
-                Business hotels and city stays.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white p-8 shadow">
-              <h3 className="text-xl font-bold">
-                Villas & Resorts
-              </h3>
-
-              <p className="mt-3 text-gray-600">
-                Luxury accommodations and
-                holiday destinations.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white p-8 shadow">
-              <h3 className="text-xl font-bold">
-                Transportation
-              </h3>
-
-              <p className="mt-3 text-gray-600">
-                Airport transfer, car rental
-                and logistics.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white p-8 shadow">
-              <h3 className="text-xl font-bold">
-                Tours
-              </h3>
-
-              <p className="mt-3 text-gray-600">
-                Activities, experiences and
-                adventures.
-              </p>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* FEATURES */}
-      <section className="mx-auto max-w-7xl px-6 py-24">
-        <div className="mb-12 text-center">
-          <h2 className="text-4xl font-bold">
-            Built For Hospitality
-          </h2>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-
-          <div className="rounded-xl border p-6">
-            Property Management
-          </div>
-
-          <div className="rounded-xl border p-6">
-            Booking Engine
-          </div>
-
-          <div className="rounded-xl border p-6">
-            Guest CRM
-          </div>
-
-          <div className="rounded-xl border p-6">
-            Revenue Analytics
-          </div>
-
-        </div>
-      </section>
-
-      {/* COMING SOON */}
-      <section className="bg-gradient-to-r from-blue-700 to-cyan-600 py-24 text-center text-white">
-        <h2 className="text-4xl font-bold">
-          Coming Soon
-        </h2>
-
-        <p className="mx-auto mt-4 max-w-2xl">
-          Mobile Apps, Payment Gateway,
-          Transportation Marketplace,
-          OTA Marketplace and AI Travel Assistant.
-        </p>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="bg-slate-950 py-10 text-center text-white">
-
-        <Image
-          src="/images/logo.png"
-          alt="MYTRIP Asia"
-          width={70}
-          height={70}
-          className="mx-auto mb-4"
-        />
-
-        <h3 className="text-xl font-bold">
-          MYTRIP Asia
-        </h3>
-
-        <p className="mt-2 text-slate-400">
-          Travel Marketplace • Property Management System •
-          Booking Engine • Hospitality Platform
-        </p>
-
-        <div className="mt-6 border-t border-slate-800 pt-6">
-          <p>
-            Copyright © 2026 MYTRIP Asia
-          </p>
-
-          <p className="mt-2 text-sm text-slate-400">
-            Developed by{" "}
-            <a
-              href="https://instagram.com/rendymandolang"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-cyan-400"
-            >
-              Rendy Mandolang
-            </a>
-          </p>
-        </div>
-
-      </footer>
     </main>
   );
 }

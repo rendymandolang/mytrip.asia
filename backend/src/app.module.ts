@@ -13,6 +13,7 @@ import { RoomTypesModule } from './room-types/room-types.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { AvailabilityModule } from './availability/availability.module';
 import { AllotmentsModule } from './allotments/allotments.module';
+import { CatalogModule } from './catalog/catalog.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AllotmentsModule } from './allotments/allotments.module';
     BookingsModule,
     AvailabilityModule,
     AllotmentsModule,
+    CatalogModule,
   ],
 
   controllers: [

@@ -390,7 +390,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
           <Link
             href="/admin/properties"
             className="rounded-lg bg-white p-6 shadow transition hover:shadow-lg"
@@ -412,6 +412,18 @@ export default function AdminPage() {
             </h2>
             <p className="mt-2 text-sm text-slate-500">
               Manage rooms and rates
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/room-types"
+            className="rounded-lg bg-white p-6 shadow transition hover:shadow-lg"
+          >
+            <h2 className="text-xl font-bold">
+              Room Types
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Manage 1BR, 2BR and unit categories
             </p>
           </Link>
 

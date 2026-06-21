@@ -139,6 +139,11 @@ export class RoomTypesService {
         data.description?.trim() || null;
     }
 
+    if (data.bedroomType !== undefined) {
+      roomTypeData.bedroomType =
+        data.bedroomType || null;
+    }
+
     if (!partial || data.capacity !== undefined) {
       roomTypeData.capacity = this.toNumber(
         data.capacity,
@@ -161,7 +166,46 @@ export class RoomTypesService {
           : data.basePrice.toString();
     }
 
+    if (data.gallery !== undefined) {
+      roomTypeData.gallery =
+        this.normalizeJsonList(data.gallery);
+    }
+
+    if (data.unitFacilities !== undefined) {
+      roomTypeData.unitFacilities =
+        this.normalizeJsonList(data.unitFacilities);
+    }
+
     return roomTypeData;
+  }
+
+  private normalizeJsonList(value: any) {
+    if (value === null || value === '') {
+      return null;
+    }
+
+    if (Array.isArray(value)) {
+      return value.filter(Boolean);
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+
+      if (!trimmed) {
+        return null;
+      }
+
+      try {
+        return JSON.parse(trimmed);
+      } catch {
+        return trimmed
+          .split(/\n/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+    }
+
+    return value;
   }
 
   private toNumber(value: any, field: string) {

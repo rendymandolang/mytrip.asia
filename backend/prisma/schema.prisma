@@ -21,6 +21,20 @@ enum PropertyType {
   RESORT
   APARTMENT
   HOMESTAY
+  CO_LIVING
+}
+
+enum RentalTerm {
+  DAILY
+  MONTHLY
+  YEARLY
+}
+
+enum BedroomType {
+  STUDIO
+  ONE_BR
+  TWO_BR
+  THREE_BR_PLUS
 }
 
 enum BookingStatus {
@@ -74,29 +88,73 @@ model User {
 model Property {
   id           Int          @id @default(autoincrement())
   name         String
+  slug         String?      @unique
   description  String?
   propertyType PropertyType
+  supportedRentalTerms RentalTerm[] @default([DAILY])
+  destinationId Int?
   timezone     String       @default("Asia/Jakarta")
   currency     String       @default("IDR")
   address      String?
+  fullAddress  String?
   city         String?
   country      String?
+  area         String?
+  latitude     Decimal?     @db.Decimal(10,7)
+  longitude    Decimal?     @db.Decimal(10,7)
+  buildingName String?
+  gallery      Json?
+  propertyFacilities Json?
+  buildingFacilities Json?
+  additionalInfo String?
+  rating       Decimal      @default(0) @db.Decimal(3,2)
+  reviewCount  Int          @default(0)
+  isPublished  Boolean      @default(true)
 
+  destination  Destination? @relation(fields: [destinationId], references: [id], onDelete: SetNull)
   allotments   Allotment[]
   rooms        Room[]
   roomTypes    RoomType[]
 
   createdAt    DateTime @default(now())
+
+  @@index([destinationId])
+  @@index([propertyType])
+  @@index([city])
+  @@index([country])
+  @@index([isPublished])
+}
+
+model Destination {
+  id          Int        @id @default(autoincrement())
+  country     String
+  city        String
+  slug        String     @unique
+  displayName String
+  latitude    Decimal?   @db.Decimal(10,7)
+  longitude   Decimal?   @db.Decimal(10,7)
+  active      Boolean    @default(true)
+
+  properties  Property[]
+
+  createdAt   DateTime   @default(now())
+
+  @@index([country])
+  @@index([city])
+  @@index([active])
 }
 
 model RoomType {
   id             Int                 @id @default(autoincrement())
   propertyId     Int
   name           String
+  bedroomType    BedroomType?
   description    String?
   capacity       Int
   totalRooms     Int                 @default(0)
   basePrice      Decimal?            @db.Decimal(12,2)
+  gallery         Json?
+  unitFacilities  Json?
 
   property       Property            @relation(fields: [propertyId], references: [id], onDelete: Restrict)
   rooms          Room[]
@@ -107,6 +165,7 @@ model RoomType {
   updatedAt      DateTime            @updatedAt
 
   @@index([propertyId])
+  @@index([bedroomType])
 }
 
 model Room {
@@ -117,6 +176,12 @@ model Room {
   description String?
   price       Decimal  @db.Decimal(12,2)
   capacity    Int
+  tower       String?
+  floor       String?
+  electricityWatt Int?
+  gallery     Json?
+  unitFacilities Json?
+  additionalInfo String?
   housekeepingStatus HousekeepingStatus @default(CLEAN)
 
   property    Property @relation(fields: [propertyId], references: [id])

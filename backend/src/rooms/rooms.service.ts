@@ -136,6 +136,17 @@ export class RoomsService {
         data.description?.trim() || null;
     }
 
+    for (const field of [
+      'tower',
+      'floor',
+      'additionalInfo',
+    ]) {
+      if (data[field] !== undefined) {
+        roomData[field] =
+          String(data[field] || '').trim() || null;
+      }
+    }
+
     if (!partial || data.price !== undefined) {
       if (
         data.price === undefined ||
@@ -164,7 +175,57 @@ export class RoomsService {
         data.housekeepingStatus;
     }
 
+    if (data.electricityWatt !== undefined) {
+      roomData.electricityWatt =
+        data.electricityWatt === null ||
+        data.electricityWatt === ''
+          ? null
+          : this.toNumber(
+              data.electricityWatt,
+              'electricityWatt',
+            );
+    }
+
+    if (data.gallery !== undefined) {
+      roomData.gallery =
+        this.normalizeJsonList(data.gallery);
+    }
+
+    if (data.unitFacilities !== undefined) {
+      roomData.unitFacilities =
+        this.normalizeJsonList(data.unitFacilities);
+    }
+
     return roomData;
+  }
+
+  private normalizeJsonList(value: any) {
+    if (value === null || value === '') {
+      return null;
+    }
+
+    if (Array.isArray(value)) {
+      return value.filter(Boolean);
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+
+      if (!trimmed) {
+        return null;
+      }
+
+      try {
+        return JSON.parse(trimmed);
+      } catch {
+        return trimmed
+          .split(/\n/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+    }
+
+    return value;
   }
 
   private toNumber(value: any, field: string) {
