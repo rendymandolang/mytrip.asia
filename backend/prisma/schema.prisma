@@ -37,6 +37,7 @@ model User {
   createdAt DateTime  @default(now())
 
   bookings  Booking[]
+  bookingAuditLogs BookingAuditLog[] @relation("BookingAuditActor")
 }
 
 model Property {
@@ -80,5 +81,27 @@ model Booking {
   user        User           @relation(fields: [userId], references: [id])
   room        Room           @relation(fields: [roomId], references: [id])
 
+  auditLogs   BookingAuditLog[]
+
   createdAt   DateTime       @default(now())
+}
+
+model BookingAuditLog {
+  id          Int      @id @default(autoincrement())
+  bookingId   Int
+  actorUserId Int?
+
+  action      String
+  reason      String?
+  oldData     Json?
+  newData     Json?
+
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  actor       User?    @relation("BookingAuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime @default(now())
+
+  @@index([bookingId])
+  @@index([actorUserId])
+  @@index([createdAt])
 }

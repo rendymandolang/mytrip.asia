@@ -7,6 +7,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 
 import { BookingsService } from './bookings.service';
@@ -25,6 +26,15 @@ export class BookingsController {
   @UseGuards(JwtGuard)
   findAll() {
     return this.bookingsService.findAll();
+  }
+
+  @Get(':id/audit-logs')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN')
+  findAuditLogs(@Param('id') id: string) {
+    return this.bookingsService.findAuditLogs(
+      Number(id),
+    );
   }
 
   @Get(':id')
@@ -47,10 +57,12 @@ export class BookingsController {
   update(
     @Param('id') id: string,
     @Body() body: any,
+    @Req() request: any,
   ) {
     return this.bookingsService.update(
       Number(id),
       body,
+      Number(request.user?.sub),
     );
   }
 
