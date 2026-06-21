@@ -188,6 +188,13 @@ export default function AdminPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
+            <Link
+              href="/admin/settings"
+              className="rounded bg-slate-700 px-4 py-2 text-white"
+            >
+              Settings
+            </Link>
+
             <button
               type="button"
               onClick={loadDashboard}

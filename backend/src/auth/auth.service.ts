@@ -7,6 +7,20 @@ import * as jwt from 'jsonwebtoken';
 export class AuthService {
   constructor(private prisma: PrismaService) {}
 
+  private profileSelect = {
+    id: true,
+    fullName: true,
+    email: true,
+    role: true,
+    department: true,
+    jobTitle: true,
+    phone: true,
+    avatarUrl: true,
+    bio: true,
+    socialLinks: true,
+    createdAt: true,
+  };
+
   async register(data: any) {
     const hashedPassword = await bcrypt.hash(
       data.password,
@@ -20,12 +34,43 @@ export class AuthService {
         password: hashedPassword,
         role: data.role || 'CUSTOMER',
       },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        role: true,
+      select: this.profileSelect,
+    });
+  }
+
+  async profile(userId: number) {
+    return this.prisma.user.findUnique({
+      where: {
+        id: userId,
       },
+      select: this.profileSelect,
+    });
+  }
+
+  async updateProfile(
+    userId: number,
+    data: any,
+  ) {
+    const socialLinks =
+      data.socialLinks &&
+      typeof data.socialLinks === 'object'
+        ? data.socialLinks
+        : undefined;
+
+    return this.prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        fullName: data.fullName,
+        department: data.department,
+        jobTitle: data.jobTitle,
+        phone: data.phone,
+        avatarUrl: data.avatarUrl,
+        bio: data.bio,
+        socialLinks,
+      },
+      select: this.profileSelect,
     });
   }
 
@@ -72,6 +117,12 @@ export class AuthService {
         fullName: user.fullName,
         email: user.email,
         role: user.role,
+        department: user.department,
+        jobTitle: user.jobTitle,
+        phone: user.phone,
+        avatarUrl: user.avatarUrl,
+        bio: user.bio,
+        socialLinks: user.socialLinks,
       },
     };
   }
