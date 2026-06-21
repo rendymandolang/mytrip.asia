@@ -343,12 +343,21 @@ export default function BookingsPage() {
           Booking Management
         </h1>
 
-        <Link
-          href="/admin"
-          className="rounded bg-blue-600 px-4 py-2 text-white"
-        >
-          Dashboard
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/admin/calendar"
+            className="rounded bg-slate-900 px-4 py-2 text-white"
+          >
+            Calendar
+          </Link>
+
+          <Link
+            href="/admin"
+            className="rounded bg-blue-600 px-4 py-2 text-white"
+          >
+            Dashboard
+          </Link>
+        </div>
       </div>
 
       {editingId && (

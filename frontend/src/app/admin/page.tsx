@@ -189,6 +189,13 @@ export default function AdminPage() {
 
           <div className="flex flex-wrap gap-3">
             <Link
+              href="/admin/calendar"
+              className="rounded bg-slate-700 px-4 py-2 text-white"
+            >
+              Calendar
+            </Link>
+
+            <Link
               href="/admin/settings"
               className="rounded bg-slate-700 px-4 py-2 text-white"
             >
@@ -383,7 +390,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-4">
           <Link
             href="/admin/properties"
             className="rounded-lg bg-white p-6 shadow transition hover:shadow-lg"
@@ -417,6 +424,18 @@ export default function AdminPage() {
             </h2>
             <p className="mt-2 text-sm text-slate-500">
               Manage reservations and approvals
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/calendar"
+            className="rounded-lg bg-white p-6 shadow transition hover:shadow-lg"
+          >
+            <h2 className="text-xl font-bold">
+              Calendar
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Move reservations by room and date
             </p>
           </Link>
         </div>
