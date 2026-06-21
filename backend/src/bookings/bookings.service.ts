@@ -267,10 +267,37 @@ export class BookingsService {
   }
 
   async findPendingChangeRequests() {
+    return this.findChangeRequests('PENDING');
+  }
+
+  async findChangeRequests(status?: string) {
+    const normalizedStatus =
+      status?.toUpperCase();
+
+    if (
+      normalizedStatus &&
+      ![
+        'PENDING',
+        'APPROVED',
+        'REJECTED',
+        'ALL',
+      ].includes(normalizedStatus)
+    ) {
+      throw new BadRequestException(
+        'Invalid approval status filter',
+      );
+    }
+
+    const where =
+      normalizedStatus &&
+      normalizedStatus !== 'ALL'
+        ? {
+            status: normalizedStatus as any,
+          }
+        : {};
+
     return this.prisma.bookingChangeRequest.findMany({
-      where: {
-        status: 'PENDING',
-      },
+      where,
       include: this.changeRequestInclude(),
       orderBy: {
         createdAt: 'desc',

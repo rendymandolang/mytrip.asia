@@ -7,6 +7,10 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [changeRequests, setChangeRequests] =
     useState<any[]>([]);
+  const [
+    changeRequestFilter,
+    setChangeRequestFilter,
+  ] = useState("PENDING");
 
   const [editingId, setEditingId] =
     useState<number | null>(null);
@@ -46,7 +50,7 @@ export default function BookingsPage() {
 
   useEffect(() => {
     loadBookings();
-    loadPendingChangeRequests();
+    loadChangeRequests(changeRequestFilter);
   }, []);
 
   async function loadBookings() {
@@ -62,11 +66,18 @@ export default function BookingsPage() {
     setBookings(data);
   }
 
-  async function loadPendingChangeRequests() {
+  async function loadChangeRequests(
+    filter = changeRequestFilter,
+  ) {
     const token = localStorage.getItem("token");
 
+    const query =
+      filter && filter !== "ALL"
+        ? `?status=${filter}`
+        : "";
+
     const response = await fetch(
-      "/api/bookings/change-requests/pending",
+      `/api/bookings/change-requests${query}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -80,6 +91,13 @@ export default function BookingsPage() {
 
     const data = await response.json();
     setChangeRequests(data);
+  }
+
+  async function updateChangeRequestFilter(
+    nextFilter: string,
+  ) {
+    setChangeRequestFilter(nextFilter);
+    await loadChangeRequests(nextFilter);
   }
 
   function resetForm() {
@@ -153,7 +171,7 @@ export default function BookingsPage() {
     }
 
     resetForm();
-    await loadPendingChangeRequests();
+    await loadChangeRequests();
 
     alert("Booking change request submitted");
   }
@@ -233,7 +251,7 @@ export default function BookingsPage() {
     }
 
     await loadBookings();
-    await loadPendingChangeRequests();
+    await loadChangeRequests();
 
     if (auditBookingId) {
       await loadAuditLogs(auditBookingId);
@@ -299,6 +317,23 @@ export default function BookingsPage() {
     }
 
     return `${base} bg-gray-100 text-gray-700`;
+  }
+
+  function approvalStatusBadge(
+    currentStatus: string,
+  ) {
+    const base =
+      "rounded px-3 py-1 text-sm font-semibold";
+
+    if (currentStatus === "APPROVED") {
+      return `${base} bg-green-100 text-green-700`;
+    }
+
+    if (currentStatus === "REJECTED") {
+      return `${base} bg-red-100 text-red-700`;
+    }
+
+    return `${base} bg-yellow-100 text-yellow-700`;
   }
 
   return (
@@ -409,22 +444,58 @@ export default function BookingsPage() {
         </div>
       )}
 
-      {changeRequests.length > 0 && (
-        <div className="mb-8 rounded-lg bg-white p-6 shadow">
-          <div className="mb-4 flex items-center justify-between">
+      <div className="mb-8 rounded-lg bg-white p-6 shadow">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+          <div>
             <h2 className="text-xl font-semibold">
-              Pending Booking Approvals
+              Booking Approval Requests
             </h2>
+
+            <p className="mt-1 text-sm text-gray-500">
+              {changeRequestFilter === "PENDING"
+                ? "Requests waiting for finance review"
+                : "Reviewed booking correction history"}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {[
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "ALL",
+            ].map((filter) => (
+              <button
+                key={filter}
+                type="button"
+                onClick={() =>
+                  updateChangeRequestFilter(filter)
+                }
+                className={`rounded px-4 py-2 ${
+                  changeRequestFilter === filter
+                    ? "bg-slate-900 text-white"
+                    : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
 
             <button
               type="button"
-              onClick={loadPendingChangeRequests}
+              onClick={() => loadChangeRequests()}
               className="rounded bg-slate-700 px-4 py-2 text-white"
             >
               Refresh
             </button>
           </div>
+        </div>
 
+        {changeRequests.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            No booking approval requests found.
+          </p>
+        ) : (
           <div className="space-y-4">
             {changeRequests.map((request) => (
               <div
@@ -436,6 +507,16 @@ export default function BookingsPage() {
                     <div className="font-semibold">
                       Request #{request.id} for Booking #
                       {request.bookingId}
+                    </div>
+
+                    <div className="mt-2">
+                      <span
+                        className={approvalStatusBadge(
+                          request.status,
+                        )}
+                      >
+                        {request.status}
+                      </span>
                     </div>
 
                     <div className="mt-1 text-sm text-gray-500">
@@ -461,9 +542,26 @@ export default function BookingsPage() {
                       {request.booking?.room?.name ||
                         "-"}
                     </div>
+
+                    {request.reviewedAt && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        Reviewed by{" "}
+                        {request.reviewedBy?.fullName ||
+                          request.reviewedBy?.email ||
+                          "System"}{" "}
+                        on{" "}
+                        {new Date(
+                          request.reviewedAt,
+                        ).toLocaleString()}
+                      </div>
+                    )}
                   </div>
 
-                  {isApprovalRole() ? (
+                  {request.status !== "PENDING" ? (
+                    <div className="rounded bg-slate-100 px-3 py-2 text-sm text-slate-500">
+                      Reviewed
+                    </div>
+                  ) : isApprovalRole() ? (
                     <div className="flex gap-2">
                       <button
                         onClick={() =>
@@ -515,8 +613,8 @@ export default function BookingsPage() {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {auditBookingId && (
         <div className="mb-8 rounded-lg bg-white p-6 shadow">

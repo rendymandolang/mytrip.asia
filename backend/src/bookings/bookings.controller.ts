@@ -8,6 +8,7 @@ import {
   Body,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 
 import { BookingsService } from './bookings.service';
@@ -43,6 +44,17 @@ export class BookingsController {
   @Roles('ADMIN', 'SUPERADMIN', 'FINANCE_HEAD')
   findPendingChangeRequests() {
     return this.bookingsService.findPendingChangeRequests();
+  }
+
+  @Get('change-requests')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN', 'SUPERADMIN', 'FINANCE_HEAD')
+  findChangeRequests(
+    @Query('status') status?: string,
+  ) {
+    return this.bookingsService.findChangeRequests(
+      status,
+    );
   }
 
   @Post('change-requests/:requestId/approve')
