@@ -43,11 +43,39 @@ function mapsUrl(property: any) {
   )}`;
 }
 
+function toDateInput(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+function addDays(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+
+  return toDateInput(date);
+}
+
 export default function PropertyDetailPage() {
   const params = useParams();
   const [property, setProperty] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [checkIn, setCheckIn] = useState(addDays(1));
+  const [checkOut, setCheckOut] = useState(addDays(2));
+  const [rentalTerm, setRentalTerm] = useState("DAILY");
+  const [availability, setAvailability] =
+    useState<any>(null);
+  const [selectedRoomTypeId, setSelectedRoomTypeId] =
+    useState("");
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [guestCountry, setGuestCountry] =
+    useState("Indonesia");
+  const [guestNotes, setGuestNotes] = useState("");
+  const [bookingLoading, setBookingLoading] =
+    useState(false);
+  const [bookingMessage, setBookingMessage] =
+    useState("");
 
   useEffect(() => {
     loadProperty();
@@ -74,6 +102,124 @@ export default function PropertyDetailPage() {
       setLoading(false);
     }
   }
+
+  async function checkAvailability(e?: React.FormEvent) {
+    e?.preventDefault();
+
+    try {
+      setBookingLoading(true);
+      setBookingMessage("");
+
+      const params = new URLSearchParams({
+        slug: String(paramsIdentifier()),
+        checkIn,
+        checkOut,
+        rentalTerm,
+      });
+
+      const response = await fetch(
+        `/api/booking-engine/availability?${params.toString()}`,
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          Array.isArray(data.message)
+            ? data.message.join(", ")
+            : data.message ||
+                "Availability check failed",
+        );
+      }
+
+      setAvailability(data);
+      setSelectedRoomTypeId(
+        data.options?.[0]?.roomType?.id
+          ? String(data.options[0].roomType.id)
+          : "",
+      );
+    } catch (availabilityError) {
+      setAvailability(null);
+      setBookingMessage(
+        availabilityError instanceof Error
+          ? availabilityError.message
+          : "Availability check failed",
+      );
+    } finally {
+      setBookingLoading(false);
+    }
+  }
+
+  async function createBooking(e: React.FormEvent) {
+    e.preventDefault();
+
+    try {
+      setBookingLoading(true);
+      setBookingMessage("");
+
+      const response = await fetch(
+        "/api/booking-engine/bookings",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            slug: String(paramsIdentifier()),
+            roomTypeId: Number(selectedRoomTypeId),
+            checkIn,
+            checkOut,
+            rentalTerm,
+            guest: {
+              fullName: guestName,
+              email: guestEmail,
+              phone: guestPhone,
+              country: guestCountry,
+              notes: guestNotes,
+            },
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          Array.isArray(data.message)
+            ? data.message.join(", ")
+            : data.message || "Booking failed",
+        );
+      }
+
+      setBookingMessage(
+        `Booking #${data.booking.id} submitted. Status: ${data.booking.status}`,
+      );
+      setGuestName("");
+      setGuestEmail("");
+      setGuestPhone("");
+      setGuestNotes("");
+      await checkAvailability();
+    } catch (bookingError) {
+      setBookingMessage(
+        bookingError instanceof Error
+          ? bookingError.message
+          : "Booking failed",
+      );
+    } finally {
+      setBookingLoading(false);
+    }
+  }
+
+  function paramsIdentifier() {
+    return Array.isArray(params.identifier)
+      ? params.identifier[0]
+      : params.identifier;
+  }
+
+  const selectedOption = availability?.options?.find(
+    (option: any) =>
+      String(option.roomType.id) === selectedRoomTypeId,
+  );
 
   if (loading) {
     return (
@@ -334,17 +480,190 @@ export default function PropertyDetailPage() {
             {property.supportedRentalTerms.join(", ")}
           </div>
 
-          <button
-            type="button"
-            className="mt-5 w-full rounded bg-blue-600 px-5 py-3 font-semibold text-white"
-            onClick={() =>
-              alert(
-                "Booking engine will be connected in the next milestone.",
-              )
-            }
+          <form
+            onSubmit={checkAvailability}
+            className="mt-5 space-y-3"
           >
-            Check Availability
-          </button>
+            <input
+              type="date"
+              value={checkIn}
+              onChange={(e) =>
+                setCheckIn(e.target.value)
+              }
+              className="w-full rounded border border-slate-200 p-3"
+              required
+            />
+
+            <input
+              type="date"
+              value={checkOut}
+              onChange={(e) =>
+                setCheckOut(e.target.value)
+              }
+              className="w-full rounded border border-slate-200 p-3"
+              required
+            />
+
+            <select
+              value={rentalTerm}
+              onChange={(e) =>
+                setRentalTerm(e.target.value)
+              }
+              className="w-full rounded border border-slate-200 p-3"
+            >
+              {(property.supportedRentalTerms || [
+                "DAILY",
+              ]).map((term: string) => (
+                <option key={term} value={term}>
+                  {term}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="submit"
+              disabled={bookingLoading}
+              className="w-full rounded bg-blue-600 px-5 py-3 font-semibold text-white"
+            >
+              {bookingLoading
+                ? "Checking..."
+                : "Check Availability"}
+            </button>
+          </form>
+
+          {availability && (
+            <form
+              onSubmit={createBooking}
+              className="mt-5 space-y-3 border-t border-slate-200 pt-5"
+            >
+              <select
+                value={selectedRoomTypeId}
+                onChange={(e) =>
+                  setSelectedRoomTypeId(e.target.value)
+                }
+                className="w-full rounded border border-slate-200 p-3"
+                required
+              >
+                {availability.options.map((option: any) => (
+                  <option
+                    key={option.roomType.id}
+                    value={option.roomType.id}
+                  >
+                    {option.roomType.name} -{" "}
+                    {option.availableRooms} available
+                  </option>
+                ))}
+              </select>
+
+              {selectedOption && (
+                <div className="rounded bg-slate-50 p-3 text-sm">
+                  <div className="flex justify-between">
+                    <span>Nights</span>
+                    <span>
+                      {selectedOption.quote.nights}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>
+                      {formatCurrency(
+                        selectedOption.quote.subtotal,
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Fees + Deposit</span>
+                    <span>
+                      {formatCurrency(
+                        selectedOption.quote.serviceFee +
+                          selectedOption.quote
+                            .cleaningFee +
+                          selectedOption.quote.deposit,
+                      )}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex justify-between border-t pt-2 font-bold">
+                    <span>Total</span>
+                    <span>
+                      {formatCurrency(
+                        selectedOption.quote.totalAmount,
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <input
+                type="text"
+                placeholder="Full name"
+                value={guestName}
+                onChange={(e) =>
+                  setGuestName(e.target.value)
+                }
+                className="w-full rounded border border-slate-200 p-3"
+                required
+              />
+
+              <input
+                type="email"
+                placeholder="Email"
+                value={guestEmail}
+                onChange={(e) =>
+                  setGuestEmail(e.target.value)
+                }
+                className="w-full rounded border border-slate-200 p-3"
+                required
+              />
+
+              <input
+                type="text"
+                placeholder="Phone"
+                value={guestPhone}
+                onChange={(e) =>
+                  setGuestPhone(e.target.value)
+                }
+                className="w-full rounded border border-slate-200 p-3"
+              />
+
+              <input
+                type="text"
+                placeholder="Country"
+                value={guestCountry}
+                onChange={(e) =>
+                  setGuestCountry(e.target.value)
+                }
+                className="w-full rounded border border-slate-200 p-3"
+              />
+
+              <textarea
+                rows={3}
+                placeholder="Notes"
+                value={guestNotes}
+                onChange={(e) =>
+                  setGuestNotes(e.target.value)
+                }
+                className="w-full rounded border border-slate-200 p-3"
+              />
+
+              <button
+                type="submit"
+                disabled={
+                  bookingLoading || !selectedRoomTypeId
+                }
+                className="w-full rounded bg-green-600 px-5 py-3 font-semibold text-white"
+              >
+                {bookingLoading
+                  ? "Submitting..."
+                  : "Submit Booking"}
+              </button>
+            </form>
+          )}
+
+          {bookingMessage && (
+            <div className="mt-4 rounded bg-slate-100 p-3 text-sm text-slate-700">
+              {bookingMessage}
+            </div>
+          )}
 
           <a
             href={mapsUrl(property)}

@@ -43,6 +43,7 @@ export default function PropertiesPage() {
   const [supportedRentalTerms, setSupportedRentalTerms] =
     useState<string[]>(["DAILY", "MONTHLY"]);
   const [destinationId, setDestinationId] = useState("");
+  const [ownerId, setOwnerId] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("Indonesia");
   const [area, setArea] = useState("");
@@ -110,6 +111,7 @@ export default function PropertiesPage() {
     setPropertyType("APARTMENT");
     setSupportedRentalTerms(["DAILY", "MONTHLY"]);
     setDestinationId("");
+    setOwnerId("");
     setCity("");
     setCountry("Indonesia");
     setArea("");
@@ -176,6 +178,7 @@ export default function PropertiesPage() {
       destinationId: destinationId
         ? Number(destinationId)
         : null,
+      ownerId: ownerId ? Number(ownerId) : null,
       city,
       country,
       area,
@@ -254,6 +257,9 @@ export default function PropertiesPage() {
       property.destinationId
         ? String(property.destinationId)
         : "",
+    );
+    setOwnerId(
+      property.ownerId ? String(property.ownerId) : "",
     );
     setCity(property.city || "");
     setCountry(property.country || "Indonesia");
@@ -405,6 +411,16 @@ export default function PropertiesPage() {
             placeholder="Area / neighborhood"
             value={area}
             onChange={(e) => setArea(e.target.value)}
+            className="rounded border p-3"
+          />
+
+          <input
+            type="number"
+            placeholder="Owner user ID"
+            value={ownerId}
+            onChange={(e) =>
+              setOwnerId(e.target.value)
+            }
             className="rounded border p-3"
           />
 
@@ -652,6 +668,12 @@ export default function PropertiesPage() {
                   {property.destination?.displayName ||
                     property.city ||
                     "-"}
+                  <div className="text-xs text-slate-500">
+                    Owner:{" "}
+                    {property.owner?.fullName ||
+                      property.ownerId ||
+                      "-"}
+                  </div>
                 </td>
                 <td className="p-4">
                   {(

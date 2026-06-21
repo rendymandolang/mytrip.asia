@@ -14,6 +14,10 @@ import { BookingsModule } from './bookings/bookings.module';
 import { AvailabilityModule } from './availability/availability.module';
 import { AllotmentsModule } from './allotments/allotments.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { PricingRulesModule } from './pricing-rules/pricing-rules.module';
+import { MediaModule } from './media/media.module';
+import { BookingEngineModule } from './booking-engine/booking-engine.module';
+import { OwnerModule } from './owner/owner.module';
 
 @Module({
   imports: [
@@ -31,6 +35,10 @@ import { CatalogModule } from './catalog/catalog.module';
     AvailabilityModule,
     AllotmentsModule,
     CatalogModule,
+    PricingRulesModule,
+    MediaModule,
+    BookingEngineModule,
+    OwnerModule,
   ],
 
   controllers: [

@@ -62,7 +62,11 @@ export default function LoginPage() {
 
         alert("Login Success");
 
-        router.push("/admin");
+        router.push(
+          data.user?.role === "OWNER"
+            ? "/owner"
+            : "/admin",
+        );
       } else {
         alert(
           data.message ||

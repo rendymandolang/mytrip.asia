@@ -26,13 +26,21 @@ export class AuthService {
       data.password,
       10,
     );
+    const requestedRole = String(
+      data.role || 'CUSTOMER',
+    ).toUpperCase();
+    const role = ['CUSTOMER', 'OWNER'].includes(
+      requestedRole,
+    )
+      ? requestedRole
+      : 'CUSTOMER';
 
     return this.prisma.user.create({
       data: {
         fullName: data.fullName,
         email: data.email,
         password: hashedPassword,
-        role: data.role || 'CUSTOMER',
+        role: role as any,
       },
       select: this.profileSelect,
     });

@@ -7,5 +7,6 @@ import { AvailabilityModule } from '../availability/availability.module';
   imports: [AvailabilityModule],
   controllers: [BookingsController],
   providers: [BookingsService],
+  exports: [BookingsService],
 })
 export class BookingsModule {}

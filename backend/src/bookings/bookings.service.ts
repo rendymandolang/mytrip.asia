@@ -23,6 +23,15 @@ export class BookingsService {
         createdAt: true,
       },
     },
+    guest: {
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phone: true,
+        country: true,
+      },
+    },
     room: {
       include: {
         property: true,
@@ -770,7 +779,17 @@ export class BookingsService {
     const bookingData: any = {};
 
     if (data.userId !== undefined) {
-      bookingData.userId = Number(data.userId);
+      bookingData.userId =
+        data.userId === null || data.userId === ''
+          ? null
+          : Number(data.userId);
+    }
+
+    if (data.guestId !== undefined) {
+      bookingData.guestId =
+        data.guestId === null || data.guestId === ''
+          ? null
+          : Number(data.guestId);
     }
 
     if (data.roomId !== undefined) {
@@ -798,8 +817,23 @@ export class BookingsService {
       bookingData.status = data.status;
     }
 
+    if (data.rentalTerm !== undefined) {
+      bookingData.rentalTerm = data.rentalTerm;
+    }
+
+    if (data.pricingSnapshot !== undefined) {
+      bookingData.pricingSnapshot =
+        data.pricingSnapshot;
+    }
+
+    if (data.source !== undefined) {
+      bookingData.source =
+        data.source?.toString() || null;
+    }
+
     for (const field of [
       'userId',
+      'guestId',
       'roomId',
     ]) {
       if (
@@ -843,6 +877,7 @@ export class BookingsService {
     return {
       id: booking.id,
       userId: booking.userId,
+      guestId: booking.guestId,
       roomId: booking.roomId,
       checkIn:
         booking.checkIn instanceof Date
@@ -854,6 +889,9 @@ export class BookingsService {
           : booking.checkOut,
       totalAmount:
         booking.totalAmount?.toString(),
+      rentalTerm: booking.rentalTerm,
+      pricingSnapshot: booking.pricingSnapshot,
+      source: booking.source,
       status: booking.status,
     };
   }

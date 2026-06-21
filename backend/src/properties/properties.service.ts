@@ -10,6 +10,14 @@ export class PropertiesService {
   constructor(private prisma: PrismaService) {}
 
   private propertyInclude = {
+    owner: {
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+      },
+    },
     destination: true,
     roomTypes: {
       include: {
@@ -150,6 +158,28 @@ export class PropertiesService {
         if (!data.country) {
           propertyData.country =
             destination.country;
+        }
+      }
+    }
+
+    if (data.ownerId !== undefined) {
+      propertyData.ownerId =
+        data.ownerId === null || data.ownerId === ''
+          ? null
+          : this.toNumber(data.ownerId, 'ownerId');
+
+      if (propertyData.ownerId) {
+        const owner = await this.prisma.user.findFirst({
+          where: {
+            id: propertyData.ownerId,
+            role: 'OWNER',
+          },
+        });
+
+        if (!owner) {
+          throw new NotFoundException(
+            'Owner user not found',
+          );
         }
       }
     }
