@@ -37,14 +37,14 @@ export class RoomsController {
 
   @Post()
   @UseGuards(JwtGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'SUPERADMIN')
   create(@Body() body: any) {
     return this.roomsService.create(body);
   }
 
   @Put(':id')
   @UseGuards(JwtGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'SUPERADMIN')
   update(
     @Param('id') id: string,
     @Body() body: any,
@@ -57,7 +57,7 @@ export class RoomsController {
 
   @Delete(':id')
   @UseGuards(JwtGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'SUPERADMIN')
   remove(@Param('id') id: string) {
     return this.roomsService.remove(
       Number(id),

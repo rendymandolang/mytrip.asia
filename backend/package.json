@@ -8,6 +8,7 @@
   "scripts": {
     "build": "nest build",
     "seed:approval-users": "node scripts/seed-approval-users.js",
+    "backfill:pms-inventory": "node scripts/backfill-pms-inventory.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

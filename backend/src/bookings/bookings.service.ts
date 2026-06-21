@@ -4,10 +4,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AvailabilityService } from '../availability/availability.service';
 
 @Injectable()
 export class BookingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private availabilityService: AvailabilityService,
+  ) {}
 
   private bookingInclude = {
     user: {
@@ -43,43 +47,38 @@ export class BookingsService {
   }
 
   async create(data: any) {
-    this.validateDateRange(
-      new Date(data.checkIn),
-      new Date(data.checkOut),
+    const bookingData =
+      this.normalizeBookingData(data);
+
+    await this.validateBookingAvailability(
+      0,
+      bookingData,
+      bookingData,
     );
 
-    const overlappingBooking =
-      await this.prisma.booking.findFirst({
-        where: {
-          roomId: data.roomId,
-          status: {
-            not: 'CANCELLED',
-          },
+    const created =
+      await this.prisma.$transaction(
+        async (tx) => {
+          const booking =
+            await tx.booking.create({
+              data: bookingData,
+              include: this.bookingInclude,
+            });
 
-          AND: [
-            {
-              checkIn: {
-                lt: new Date(data.checkOut),
-              },
-            },
-            {
-              checkOut: {
-                gt: new Date(data.checkIn),
-              },
-            },
-          ],
+          await this.replaceRoomAllocations(
+            tx,
+            booking,
+          );
+
+          return booking;
         },
-      });
-
-    if (overlappingBooking) {
-      throw new BadRequestException(
-        'Room is not available for selected dates',
       );
-    }
 
-    return this.prisma.booking.create({
-      data,
-    });
+    await this.syncDailyAvailabilityForBookings([
+      created,
+    ]);
+
+    return created;
   }
 
   async update(
@@ -150,31 +149,44 @@ export class BookingsService {
       normalizedBookingData,
     );
 
-    return this.prisma.$transaction(
-      async (tx) => {
-        const updated =
-          await tx.booking.update({
-            where: { id },
-            data: normalizedBookingData,
-            include: this.bookingInclude,
+    const updated =
+      await this.prisma.$transaction(
+        async (tx) => {
+          const booking =
+            await tx.booking.update({
+              where: { id },
+              data: normalizedBookingData,
+              include: this.bookingInclude,
+            });
+
+          await this.replaceRoomAllocations(
+            tx,
+            booking,
+          );
+
+          await tx.bookingAuditLog.create({
+            data: {
+              bookingId: id,
+              actorUserId,
+              action,
+              reason: auditReasonText,
+              oldData:
+                this.serializeBooking(existing),
+              newData:
+                this.serializeBooking(booking),
+            },
           });
 
-        await tx.bookingAuditLog.create({
-          data: {
-            bookingId: id,
-            actorUserId,
-            action,
-            reason: auditReasonText,
-            oldData:
-              this.serializeBooking(existing),
-            newData:
-              this.serializeBooking(updated),
-          },
-        });
+          return booking;
+        },
+      );
 
-        return updated;
-      },
-    );
+    await this.syncDailyAvailabilityForBookings([
+      existing,
+      updated,
+    ]);
+
+    return updated;
   }
 
   async createChangeRequest(
@@ -352,54 +364,70 @@ export class BookingsService {
       bookingData,
     );
 
-    return this.prisma.$transaction(
-      async (tx) => {
-        const updatedBooking =
-          await tx.booking.update({
-            where: {
-              id: changeRequest.bookingId,
-            },
-            data: bookingData,
-            include: this.bookingInclude,
-          });
+    const result =
+      await this.prisma.$transaction(
+        async (tx) => {
+          const updatedBooking =
+            await tx.booking.update({
+              where: {
+                id: changeRequest.bookingId,
+              },
+              data: bookingData,
+              include: this.bookingInclude,
+            });
 
-        const reviewedRequest =
-          await tx.bookingChangeRequest.update({
-            where: { id: requestId },
+          await this.replaceRoomAllocations(
+            tx,
+            updatedBooking,
+          );
+
+          const reviewedRequest =
+            await tx.bookingChangeRequest.update({
+              where: { id: requestId },
+              data: {
+                status: 'APPROVED',
+                reviewedById: actorUserId,
+                reviewNote:
+                  reviewNote?.trim() || null,
+                reviewedAt: new Date(),
+              },
+              include: this.changeRequestInclude(),
+            });
+
+          await tx.bookingAuditLog.create({
             data: {
-              status: 'APPROVED',
-              reviewedById: actorUserId,
-              reviewNote:
-                reviewNote?.trim() || null,
-              reviewedAt: new Date(),
+              bookingId:
+                changeRequest.bookingId,
+              actorUserId,
+              action:
+                'BOOKING_CHANGE_APPROVED',
+              reason:
+                reviewNote?.trim() ||
+                changeRequest.reason,
+              oldData:
+                this.serializeBooking(
+                  changeRequest.booking,
+                ),
+              newData:
+                this.serializeBooking(
+                  updatedBooking,
+                ),
             },
-            include: this.changeRequestInclude(),
           });
 
-        await tx.bookingAuditLog.create({
-          data: {
-            bookingId:
-              changeRequest.bookingId,
-            actorUserId,
-            action:
-              'BOOKING_CHANGE_APPROVED',
-            reason:
-              reviewNote?.trim() ||
-              changeRequest.reason,
-            oldData:
-              this.serializeBooking(
-                changeRequest.booking,
-              ),
-            newData:
-              this.serializeBooking(
-                updatedBooking,
-              ),
-          },
-        });
+          return {
+            reviewedRequest,
+            updatedBooking,
+          };
+        },
+      );
 
-        return reviewedRequest;
-      },
-    );
+    await this.syncDailyAvailabilityForBookings([
+      changeRequest.booking,
+      result.updatedBooking,
+    ]);
+
+    return result.reviewedRequest;
   }
 
   async rejectChangeRequest(
@@ -493,9 +521,139 @@ export class BookingsService {
   }
 
   async remove(id: number) {
-    return this.prisma.booking.delete({
+    const existing =
+      await this.prisma.booking.findUnique({
+        where: { id },
+      });
+
+    if (!existing) {
+      throw new NotFoundException(
+        'Booking not found',
+      );
+    }
+
+    const deleted =
+      await this.prisma.booking.delete({
       where: { id },
     });
+
+    await this.syncDailyAvailabilityForBookings([
+      existing,
+    ]);
+
+    return deleted;
+  }
+
+  private async replaceRoomAllocations(
+    tx: any,
+    booking: any,
+  ) {
+    await tx.roomAllocation.deleteMany({
+      where: {
+        bookingId: booking.id,
+      },
+    });
+
+    if (booking.status === 'CANCELLED') {
+      return;
+    }
+
+    const dates = this.getNightDates(
+      booking.checkIn,
+      booking.checkOut,
+    );
+
+    if (dates.length === 0) {
+      return;
+    }
+
+    await tx.roomAllocation.createMany({
+      data: dates.map((date) => ({
+        bookingId: booking.id,
+        roomId: booking.roomId,
+        date,
+      })),
+    });
+  }
+
+  private async syncDailyAvailabilityForBookings(
+    bookings: any[],
+  ) {
+    const roomTypeIds = new Set<number>();
+    const dateValues: number[] = [];
+
+    for (const booking of bookings) {
+      if (!booking) {
+        continue;
+      }
+
+      const room = await this.prisma.room.findUnique({
+        where: {
+          id: booking.roomId,
+        },
+        select: {
+          roomTypeId: true,
+        },
+      });
+
+      if (room?.roomTypeId) {
+        roomTypeIds.add(room.roomTypeId);
+      }
+
+      dateValues.push(
+        this.toDateOnly(
+          new Date(booking.checkIn),
+        ).getTime(),
+        this.toDateOnly(
+          new Date(booking.checkOut),
+        ).getTime(),
+      );
+    }
+
+    if (
+      roomTypeIds.size === 0 ||
+      dateValues.length === 0
+    ) {
+      return;
+    }
+
+    await this.availabilityService.syncDailyAvailability(
+      new Date(Math.min(...dateValues)),
+      new Date(Math.max(...dateValues)),
+      [...roomTypeIds],
+    );
+  }
+
+  private getNightDates(
+    checkIn: Date,
+    checkOut: Date,
+  ) {
+    const dates: Date[] = [];
+    const cursor = this.toDateOnly(
+      new Date(checkIn),
+    );
+    const end = this.toDateOnly(
+      new Date(checkOut),
+    );
+
+    while (cursor < end) {
+      dates.push(new Date(cursor));
+      cursor.setUTCDate(
+        cursor.getUTCDate() + 1,
+      );
+    }
+
+    return dates;
+  }
+
+  private toDateOnly(value: Date) {
+    return new Date(
+      Date.UTC(
+        value.getUTCFullYear(),
+        value.getUTCMonth(),
+        value.getUTCDate(),
+      ),
+    );
   }
 
   private validateDateRange(
@@ -527,6 +685,12 @@ export class BookingsService {
       bookingData.roomId ??
         existingBooking.roomId,
     );
+
+    if (Number.isNaN(nextRoomId)) {
+      throw new BadRequestException(
+        'Invalid roomId',
+      );
+    }
 
     const nextCheckIn = new Date(
       bookingData.checkIn ??
@@ -579,6 +743,25 @@ export class BookingsService {
     if (overlappingBooking) {
       throw new BadRequestException(
         'Room is not available for selected dates',
+      );
+    }
+
+    const overlappingBlock =
+      await this.prisma.availabilityBlock.findFirst({
+        where: {
+          roomId: nextRoomId,
+          startDate: {
+            lt: nextCheckOut,
+          },
+          endDate: {
+            gt: nextCheckIn,
+          },
+        },
+      });
+
+    if (overlappingBlock) {
+      throw new BadRequestException(
+        'Room is blocked for selected dates',
       );
     }
   }

@@ -1,36 +1,40 @@
 import {
+  Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
   Put,
-  Delete,
-  Body,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
-import { PropertiesService } from './properties.service';
-
+import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtGuard } from '../auth/guards/jwt.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { RoomTypesService } from './room-types.service';
 
-@Controller('properties')
-export class PropertiesController {
+@Controller('room-types')
+export class RoomTypesController {
   constructor(
-    private readonly propertiesService: PropertiesService,
+    private readonly roomTypesService: RoomTypesService,
   ) {}
 
   @Get()
   @UseGuards(JwtGuard)
-  findAll() {
-    return this.propertiesService.findAll();
+  findAll(
+    @Query('propertyId') propertyId?: string,
+  ) {
+    return this.roomTypesService.findAll(
+      propertyId,
+    );
   }
 
   @Get(':id')
   @UseGuards(JwtGuard)
   findOne(@Param('id') id: string) {
-    return this.propertiesService.findOne(
+    return this.roomTypesService.findOne(
       Number(id),
     );
   }
@@ -39,7 +43,7 @@ export class PropertiesController {
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN', 'SUPERADMIN')
   create(@Body() body: any) {
-    return this.propertiesService.create(body);
+    return this.roomTypesService.create(body);
   }
 
   @Put(':id')
@@ -49,7 +53,7 @@ export class PropertiesController {
     @Param('id') id: string,
     @Body() body: any,
   ) {
-    return this.propertiesService.update(
+    return this.roomTypesService.update(
       Number(id),
       body,
     );
@@ -59,7 +63,7 @@ export class PropertiesController {
   @UseGuards(JwtGuard, RolesGuard)
   @Roles('ADMIN', 'SUPERADMIN')
   remove(@Param('id') id: string) {
-    return this.propertiesService.remove(
+    return this.roomTypesService.remove(
       Number(id),
     );
   }

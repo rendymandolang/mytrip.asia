@@ -9,7 +9,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { PropertiesModule } from './properties/properties.module';
 import { RoomsModule } from './rooms/rooms.module';
+import { RoomTypesModule } from './room-types/room-types.module';
 import { BookingsModule } from './bookings/bookings.module';
+import { AvailabilityModule } from './availability/availability.module';
+import { AllotmentsModule } from './allotments/allotments.module';
 
 @Module({
   imports: [
@@ -21,8 +24,11 @@ import { BookingsModule } from './bookings/bookings.module';
 
     AuthModule,
     PropertiesModule,
+    RoomTypesModule,
     RoomsModule,
     BookingsModule,
+    AvailabilityModule,
+    AllotmentsModule,
   ],
 
   controllers: [
