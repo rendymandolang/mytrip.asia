@@ -40,14 +40,14 @@ export class BookingsController {
 
   @Get('change-requests/pending')
   @UseGuards(JwtGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'SUPERADMIN', 'FINANCE_HEAD')
   findPendingChangeRequests() {
     return this.bookingsService.findPendingChangeRequests();
   }
 
   @Post('change-requests/:requestId/approve')
   @UseGuards(JwtGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('SUPERADMIN', 'FINANCE_HEAD')
   approveChangeRequest(
     @Param('requestId') requestId: string,
     @Body() body: any,
@@ -62,7 +62,7 @@ export class BookingsController {
 
   @Post('change-requests/:requestId/reject')
   @UseGuards(JwtGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('SUPERADMIN', 'FINANCE_HEAD')
   rejectChangeRequest(
     @Param('requestId') requestId: string,
     @Body() body: any,
@@ -77,7 +77,7 @@ export class BookingsController {
 
   @Get(':id/audit-logs')
   @UseGuards(JwtGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'SUPERADMIN', 'FINANCE_HEAD')
   findAuditLogs(@Param('id') id: string) {
     return this.bookingsService.findAuditLogs(
       Number(id),
@@ -94,7 +94,7 @@ export class BookingsController {
 
   @Post(':id/change-requests')
   @UseGuards(JwtGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'SUPERADMIN', 'FINANCE_HEAD')
   createChangeRequest(
     @Param('id') id: string,
     @Body() body: any,
@@ -115,7 +115,7 @@ export class BookingsController {
 
   @Put(':id')
   @UseGuards(JwtGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'SUPERADMIN', 'FINANCE_HEAD')
   update(
     @Param('id') id: string,
     @Body() body: any,

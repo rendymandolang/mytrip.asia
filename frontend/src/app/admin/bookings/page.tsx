@@ -21,6 +21,29 @@ export default function BookingsPage() {
     useState<number | null>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
+  function currentUser() {
+    const user = localStorage.getItem("user");
+
+    if (!user) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(user);
+    } catch {
+      return null;
+    }
+  }
+
+  function isApprovalRole() {
+    const role = currentUser()?.role;
+
+    return (
+      role === "SUPERADMIN" ||
+      role === "FINANCE_HEAD"
+    );
+  }
+
   useEffect(() => {
     loadBookings();
     loadPendingChangeRequests();
@@ -440,31 +463,37 @@ export default function BookingsPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() =>
-                        reviewChangeRequest(
-                          request.id,
-                          "approve",
-                        )
-                      }
-                      className="rounded bg-green-600 px-3 py-2 text-white"
-                    >
-                      Approve
-                    </button>
+                  {isApprovalRole() ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          reviewChangeRequest(
+                            request.id,
+                            "approve",
+                          )
+                        }
+                        className="rounded bg-green-600 px-3 py-2 text-white"
+                      >
+                        Approve
+                      </button>
 
-                    <button
-                      onClick={() =>
-                        reviewChangeRequest(
-                          request.id,
-                          "reject",
-                        )
-                      }
-                      className="rounded bg-red-600 px-3 py-2 text-white"
-                    >
-                      Reject
-                    </button>
-                  </div>
+                      <button
+                        onClick={() =>
+                          reviewChangeRequest(
+                            request.id,
+                            "reject",
+                          )
+                        }
+                        className="rounded bg-red-600 px-3 py-2 text-white"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="rounded bg-slate-100 px-3 py-2 text-sm text-slate-500">
+                      Waiting for finance approval
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-3 space-y-1 text-sm text-gray-600">

@@ -116,6 +116,19 @@ export class BookingsService {
       );
     }
 
+    const changedFields = Object.keys(
+      normalizedBookingData,
+    );
+
+    if (
+      changedFields.length !== 1 ||
+      changedFields[0] !== 'status'
+    ) {
+      throw new BadRequestException(
+        'Booking corrections must use approval workflow',
+      );
+    }
+
     const auditReasonText = String(
       auditReason || reason || '',
     ).trim();
@@ -292,6 +305,15 @@ export class BookingsService {
       );
     }
 
+    if (
+      actorUserId &&
+      changeRequest.requestedById === actorUserId
+    ) {
+      throw new BadRequestException(
+        'Requester cannot approve their own booking change request',
+      );
+    }
+
     const bookingData =
       this.normalizeBookingData(
         changeRequest.newData,
@@ -374,6 +396,15 @@ export class BookingsService {
     if (changeRequest.status !== 'PENDING') {
       throw new BadRequestException(
         'Booking change request already reviewed',
+      );
+    }
+
+    if (
+      actorUserId &&
+      changeRequest.requestedById === actorUserId
+    ) {
+      throw new BadRequestException(
+        'Requester cannot reject their own booking change request',
       );
     }
 
