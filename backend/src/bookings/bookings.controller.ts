@@ -22,10 +22,57 @@ export class BookingsController {
     private readonly bookingsService: BookingsService,
   ) {}
 
+  private actorUserId(request: any) {
+    const userId = Number(request.user?.sub);
+
+    if (Number.isNaN(userId)) {
+      return undefined;
+    }
+
+    return userId;
+  }
+
   @Get()
   @UseGuards(JwtGuard)
   findAll() {
     return this.bookingsService.findAll();
+  }
+
+  @Get('change-requests/pending')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN')
+  findPendingChangeRequests() {
+    return this.bookingsService.findPendingChangeRequests();
+  }
+
+  @Post('change-requests/:requestId/approve')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN')
+  approveChangeRequest(
+    @Param('requestId') requestId: string,
+    @Body() body: any,
+    @Req() request: any,
+  ) {
+    return this.bookingsService.approveChangeRequest(
+      Number(requestId),
+      this.actorUserId(request),
+      body?.reviewNote,
+    );
+  }
+
+  @Post('change-requests/:requestId/reject')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN')
+  rejectChangeRequest(
+    @Param('requestId') requestId: string,
+    @Body() body: any,
+    @Req() request: any,
+  ) {
+    return this.bookingsService.rejectChangeRequest(
+      Number(requestId),
+      this.actorUserId(request),
+      body?.reviewNote,
+    );
   }
 
   @Get(':id/audit-logs')
@@ -42,6 +89,21 @@ export class BookingsController {
   findOne(@Param('id') id: string) {
     return this.bookingsService.findOne(
       Number(id),
+    );
+  }
+
+  @Post(':id/change-requests')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles('ADMIN')
+  createChangeRequest(
+    @Param('id') id: string,
+    @Body() body: any,
+    @Req() request: any,
+  ) {
+    return this.bookingsService.createChangeRequest(
+      Number(id),
+      body,
+      this.actorUserId(request),
     );
   }
 
@@ -62,7 +124,7 @@ export class BookingsController {
     return this.bookingsService.update(
       Number(id),
       body,
-      Number(request.user?.sub),
+      this.actorUserId(request),
     );
   }
 

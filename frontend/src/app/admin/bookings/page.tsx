@@ -5,6 +5,8 @@ import Link from "next/link";
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<any[]>([]);
+  const [changeRequests, setChangeRequests] =
+    useState<any[]>([]);
 
   const [editingId, setEditingId] =
     useState<number | null>(null);
@@ -21,6 +23,7 @@ export default function BookingsPage() {
 
   useEffect(() => {
     loadBookings();
+    loadPendingChangeRequests();
   }, []);
 
   async function loadBookings() {
@@ -34,6 +37,26 @@ export default function BookingsPage() {
 
     const data = await response.json();
     setBookings(data);
+  }
+
+  async function loadPendingChangeRequests() {
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+      "/api/bookings/change-requests/pending",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      return;
+    }
+
+    const data = await response.json();
+    setChangeRequests(data);
   }
 
   function resetForm() {
@@ -84,9 +107,9 @@ export default function BookingsPage() {
     const token = localStorage.getItem("token");
 
     const response = await fetch(
-      `/api/bookings/${editingId}`,
+      `/api/bookings/${editingId}/change-requests`,
       {
-        method: "PUT",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -107,9 +130,9 @@ export default function BookingsPage() {
     }
 
     resetForm();
-    await loadBookings();
+    await loadPendingChangeRequests();
 
-    alert("Booking updated successfully");
+    alert("Booking change request submitted");
   }
 
   async function updateStatus(
@@ -146,6 +169,54 @@ export default function BookingsPage() {
 
     await loadBookings();
     alert("Booking status updated");
+  }
+
+  async function reviewChangeRequest(
+    requestId: number,
+    decision: "approve" | "reject",
+  ) {
+    const reviewNote = prompt(
+      `${
+        decision === "approve"
+          ? "Approval"
+          : "Rejection"
+      } note?`,
+    );
+
+    if (!reviewNote?.trim()) {
+      alert("Review note is required");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+      `/api/bookings/change-requests/${requestId}/${decision}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          reviewNote: reviewNote.trim(),
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      alert("Failed to review change request");
+      return;
+    }
+
+    await loadBookings();
+    await loadPendingChangeRequests();
+
+    if (auditBookingId) {
+      await loadAuditLogs(auditBookingId);
+    }
+
+    alert("Change request reviewed");
   }
 
   async function loadAuditLogs(bookingId: number) {
@@ -296,7 +367,7 @@ export default function BookingsPage() {
               type="submit"
               className="rounded bg-green-600 px-6 py-3 text-white"
             >
-              Update Booking
+              Submit Approval Request
             </button>
 
             <button
@@ -309,10 +380,112 @@ export default function BookingsPage() {
           </form>
 
           <p className="mt-4 text-sm text-gray-500">
-            Note: For production, confirmed booking
-            correction should require finance approval and
-            audit log.
+            This correction will be submitted for approval
+            before it changes the booking.
           </p>
+        </div>
+      )}
+
+      {changeRequests.length > 0 && (
+        <div className="mb-8 rounded-lg bg-white p-6 shadow">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">
+              Pending Booking Approvals
+            </h2>
+
+            <button
+              type="button"
+              onClick={loadPendingChangeRequests}
+              className="rounded bg-slate-700 px-4 py-2 text-white"
+            >
+              Refresh
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {changeRequests.map((request) => (
+              <div
+                key={request.id}
+                className="rounded border p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="font-semibold">
+                      Request #{request.id} for Booking #
+                      {request.bookingId}
+                    </div>
+
+                    <div className="mt-1 text-sm text-gray-500">
+                      {request.action} by{" "}
+                      {request.requestedBy?.fullName ||
+                        request.requestedBy?.email ||
+                        "System"}{" "}
+                      on{" "}
+                      {new Date(
+                        request.createdAt,
+                      ).toLocaleString()}
+                    </div>
+
+                    <div className="mt-2 text-sm">
+                      Reason: {request.reason}
+                    </div>
+
+                    <div className="mt-2 text-sm text-gray-600">
+                      Guest:{" "}
+                      {request.booking?.user?.fullName ||
+                        "-"}{" "}
+                      | Room:{" "}
+                      {request.booking?.room?.name ||
+                        "-"}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        reviewChangeRequest(
+                          request.id,
+                          "approve",
+                        )
+                      }
+                      className="rounded bg-green-600 px-3 py-2 text-white"
+                    >
+                      Approve
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        reviewChangeRequest(
+                          request.id,
+                          "reject",
+                        )
+                      }
+                      className="rounded bg-red-600 px-3 py-2 text-white"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-3 space-y-1 text-sm text-gray-600">
+                  {[
+                    "status",
+                    "checkIn",
+                    "checkOut",
+                    "totalAmount",
+                    "roomId",
+                  ]
+                    .map((field) =>
+                      changedValue(request, field),
+                    )
+                    .filter(Boolean)
+                    .map((change) => (
+                      <div key={change}>{change}</div>
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

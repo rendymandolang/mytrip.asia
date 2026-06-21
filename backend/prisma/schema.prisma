@@ -28,6 +28,12 @@ enum BookingStatus {
   COMPLETED
 }
 
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id        Int       @id @default(autoincrement())
   fullName  String
@@ -38,6 +44,8 @@ model User {
 
   bookings  Booking[]
   bookingAuditLogs BookingAuditLog[] @relation("BookingAuditActor")
+  requestedBookingChanges BookingChangeRequest[] @relation("BookingChangeRequestedBy")
+  reviewedBookingChanges  BookingChangeRequest[] @relation("BookingChangeReviewedBy")
 }
 
 model Property {
@@ -82,6 +90,7 @@ model Booking {
   room        Room           @relation(fields: [roomId], references: [id])
 
   auditLogs   BookingAuditLog[]
+  changeRequests BookingChangeRequest[]
 
   createdAt   DateTime       @default(now())
 }
@@ -103,5 +112,32 @@ model BookingAuditLog {
 
   @@index([bookingId])
   @@index([actorUserId])
+  @@index([createdAt])
+}
+
+model BookingChangeRequest {
+  id            Int            @id @default(autoincrement())
+  bookingId     Int
+  requestedById Int?
+  reviewedById  Int?
+
+  status        ApprovalStatus @default(PENDING)
+  action        String
+  reason        String
+  reviewNote    String?
+  oldData       Json?
+  newData       Json
+
+  booking       Booking        @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  requestedBy   User?          @relation("BookingChangeRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  reviewedBy    User?          @relation("BookingChangeReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  reviewedAt    DateTime?
+  createdAt     DateTime       @default(now())
+
+  @@index([bookingId])
+  @@index([requestedById])
+  @@index([reviewedById])
+  @@index([status])
   @@index([createdAt])
 }

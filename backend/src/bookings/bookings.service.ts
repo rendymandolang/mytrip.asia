@@ -104,62 +104,37 @@ export class BookingsService {
       ...bookingData
     } = data;
 
-    const nextRoomId = Number(
-      bookingData.roomId ?? existing.roomId,
-    );
+    const normalizedBookingData =
+      this.normalizeBookingData(bookingData);
 
-    const nextCheckIn = new Date(
-      bookingData.checkIn ?? existing.checkIn,
-    );
-
-    const nextCheckOut = new Date(
-      bookingData.checkOut ?? existing.checkOut,
-    );
-
-    const nextStatus =
-      bookingData.status ?? existing.status;
-
-    this.validateDateRange(
-      nextCheckIn,
-      nextCheckOut,
-    );
-
-    if (nextStatus !== 'CANCELLED') {
-      const overlappingBooking =
-        await this.prisma.booking.findFirst({
-          where: {
-            id: {
-              not: id,
-            },
-            roomId: nextRoomId,
-            status: {
-              not: 'CANCELLED',
-            },
-            AND: [
-              {
-                checkIn: {
-                  lt: nextCheckOut,
-                },
-              },
-              {
-                checkOut: {
-                  gt: nextCheckIn,
-                },
-              },
-            ],
-          },
-        });
-
-      if (overlappingBooking) {
-        throw new BadRequestException(
-          'Room is not available for selected dates',
-        );
-      }
+    if (
+      Object.keys(normalizedBookingData)
+        .length === 0
+    ) {
+      throw new BadRequestException(
+        'No booking changes provided',
+      );
     }
+
+    const auditReasonText = String(
+      auditReason || reason || '',
+    ).trim();
+
+    if (!auditReasonText) {
+      throw new BadRequestException(
+        'Audit reason is required',
+      );
+    }
+
+    await this.validateBookingAvailability(
+      id,
+      existing,
+      normalizedBookingData,
+    );
 
     const action = this.getAuditAction(
       existing.status,
-      bookingData,
+      normalizedBookingData,
     );
 
     return this.prisma.$transaction(
@@ -167,7 +142,7 @@ export class BookingsService {
         const updated =
           await tx.booking.update({
             where: { id },
-            data: bookingData,
+            data: normalizedBookingData,
             include: this.bookingInclude,
           });
 
@@ -176,8 +151,7 @@ export class BookingsService {
             bookingId: id,
             actorUserId,
             action,
-            reason:
-              auditReason || reason || null,
+            reason: auditReasonText,
             oldData:
               this.serializeBooking(existing),
             newData:
@@ -186,6 +160,257 @@ export class BookingsService {
         });
 
         return updated;
+      },
+    );
+  }
+
+  async createChangeRequest(
+    id: number,
+    data: any,
+    actorUserId?: number,
+  ) {
+    const existing =
+      await this.prisma.booking.findUnique({
+        where: { id },
+      });
+
+    if (!existing) {
+      throw new NotFoundException(
+        'Booking not found',
+      );
+    }
+
+    const {
+      auditReason,
+      reason,
+      ...bookingData
+    } = data;
+
+    const normalizedBookingData =
+      this.normalizeBookingData(bookingData);
+
+    if (
+      Object.keys(normalizedBookingData)
+        .length === 0
+    ) {
+      throw new BadRequestException(
+        'No booking changes provided',
+      );
+    }
+
+    const requestReason = String(
+      auditReason || reason || '',
+    ).trim();
+
+    if (!requestReason) {
+      throw new BadRequestException(
+        'Approval reason is required',
+      );
+    }
+
+    const pendingRequest =
+      await this.prisma.bookingChangeRequest.findFirst(
+        {
+          where: {
+            bookingId: id,
+            status: 'PENDING',
+          },
+        },
+      );
+
+    if (pendingRequest) {
+      throw new BadRequestException(
+        'Booking already has a pending change request',
+      );
+    }
+
+    await this.validateBookingAvailability(
+      id,
+      existing,
+      normalizedBookingData,
+    );
+
+    const action = this.getAuditAction(
+      existing.status,
+      normalizedBookingData,
+    );
+
+    return this.prisma.bookingChangeRequest.create({
+      data: {
+        bookingId: id,
+        requestedById: actorUserId,
+        action,
+        reason: requestReason,
+        oldData:
+          this.serializeBooking(existing),
+        newData:
+          this.serializeBooking({
+            ...existing,
+            ...normalizedBookingData,
+          }),
+      },
+      include: this.changeRequestInclude(),
+    });
+  }
+
+  async findPendingChangeRequests() {
+    return this.prisma.bookingChangeRequest.findMany({
+      where: {
+        status: 'PENDING',
+      },
+      include: this.changeRequestInclude(),
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async approveChangeRequest(
+    requestId: number,
+    actorUserId?: number,
+    reviewNote?: string,
+  ) {
+    const changeRequest =
+      await this.prisma.bookingChangeRequest.findUnique(
+        {
+          where: { id: requestId },
+          include: {
+            booking: true,
+          },
+        },
+      );
+
+    if (!changeRequest) {
+      throw new NotFoundException(
+        'Booking change request not found',
+      );
+    }
+
+    if (changeRequest.status !== 'PENDING') {
+      throw new BadRequestException(
+        'Booking change request already reviewed',
+      );
+    }
+
+    const bookingData =
+      this.normalizeBookingData(
+        changeRequest.newData,
+      );
+
+    await this.validateBookingAvailability(
+      changeRequest.bookingId,
+      changeRequest.booking,
+      bookingData,
+    );
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const updatedBooking =
+          await tx.booking.update({
+            where: {
+              id: changeRequest.bookingId,
+            },
+            data: bookingData,
+            include: this.bookingInclude,
+          });
+
+        const reviewedRequest =
+          await tx.bookingChangeRequest.update({
+            where: { id: requestId },
+            data: {
+              status: 'APPROVED',
+              reviewedById: actorUserId,
+              reviewNote:
+                reviewNote?.trim() || null,
+              reviewedAt: new Date(),
+            },
+            include: this.changeRequestInclude(),
+          });
+
+        await tx.bookingAuditLog.create({
+          data: {
+            bookingId:
+              changeRequest.bookingId,
+            actorUserId,
+            action:
+              'BOOKING_CHANGE_APPROVED',
+            reason:
+              reviewNote?.trim() ||
+              changeRequest.reason,
+            oldData:
+              this.serializeBooking(
+                changeRequest.booking,
+              ),
+            newData:
+              this.serializeBooking(
+                updatedBooking,
+              ),
+          },
+        });
+
+        return reviewedRequest;
+      },
+    );
+  }
+
+  async rejectChangeRequest(
+    requestId: number,
+    actorUserId?: number,
+    reviewNote?: string,
+  ) {
+    const changeRequest =
+      await this.prisma.bookingChangeRequest.findUnique(
+        {
+          where: { id: requestId },
+        },
+      );
+
+    if (!changeRequest) {
+      throw new NotFoundException(
+        'Booking change request not found',
+      );
+    }
+
+    if (changeRequest.status !== 'PENDING') {
+      throw new BadRequestException(
+        'Booking change request already reviewed',
+      );
+    }
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const reviewedRequest =
+          await tx.bookingChangeRequest.update({
+            where: { id: requestId },
+            data: {
+              status: 'REJECTED',
+              reviewedById: actorUserId,
+              reviewNote:
+                reviewNote?.trim() || null,
+              reviewedAt: new Date(),
+            },
+            include: this.changeRequestInclude(),
+          });
+
+        await tx.bookingAuditLog.create({
+          data: {
+            bookingId:
+              changeRequest.bookingId,
+            actorUserId,
+            action:
+              'BOOKING_CHANGE_REJECTED',
+            reason:
+              reviewNote?.trim() ||
+              changeRequest.reason,
+            oldData:
+              (changeRequest.oldData ??
+                undefined) as any,
+            newData:
+              changeRequest.newData as any,
+          },
+        });
+
+        return reviewedRequest;
       },
     );
   }
@@ -235,6 +460,120 @@ export class BookingsService {
     }
   }
 
+  private async validateBookingAvailability(
+    bookingId: number,
+    existingBooking: any,
+    bookingData: any,
+  ) {
+    const nextRoomId = Number(
+      bookingData.roomId ??
+        existingBooking.roomId,
+    );
+
+    const nextCheckIn = new Date(
+      bookingData.checkIn ??
+        existingBooking.checkIn,
+    );
+
+    const nextCheckOut = new Date(
+      bookingData.checkOut ??
+        existingBooking.checkOut,
+    );
+
+    const nextStatus =
+      bookingData.status ??
+      existingBooking.status;
+
+    this.validateDateRange(
+      nextCheckIn,
+      nextCheckOut,
+    );
+
+    if (nextStatus === 'CANCELLED') {
+      return;
+    }
+
+    const overlappingBooking =
+      await this.prisma.booking.findFirst({
+        where: {
+          id: {
+            not: bookingId,
+          },
+          roomId: nextRoomId,
+          status: {
+            not: 'CANCELLED',
+          },
+          AND: [
+            {
+              checkIn: {
+                lt: nextCheckOut,
+              },
+            },
+            {
+              checkOut: {
+                gt: nextCheckIn,
+              },
+            },
+          ],
+        },
+      });
+
+    if (overlappingBooking) {
+      throw new BadRequestException(
+        'Room is not available for selected dates',
+      );
+    }
+  }
+
+  private normalizeBookingData(data: any) {
+    const bookingData: any = {};
+
+    if (data.userId !== undefined) {
+      bookingData.userId = Number(data.userId);
+    }
+
+    if (data.roomId !== undefined) {
+      bookingData.roomId = Number(data.roomId);
+    }
+
+    if (data.checkIn !== undefined) {
+      bookingData.checkIn = new Date(
+        data.checkIn,
+      );
+    }
+
+    if (data.checkOut !== undefined) {
+      bookingData.checkOut = new Date(
+        data.checkOut,
+      );
+    }
+
+    if (data.totalAmount !== undefined) {
+      bookingData.totalAmount =
+        data.totalAmount.toString();
+    }
+
+    if (data.status !== undefined) {
+      bookingData.status = data.status;
+    }
+
+    for (const field of [
+      'userId',
+      'roomId',
+    ]) {
+      if (
+        bookingData[field] !== undefined &&
+        Number.isNaN(bookingData[field])
+      ) {
+        throw new BadRequestException(
+          `Invalid ${field}`,
+        );
+      }
+    }
+
+    return bookingData;
+  }
+
   private getAuditAction(
     previousStatus: string,
     bookingData: any,
@@ -275,6 +614,30 @@ export class BookingsService {
       totalAmount:
         booking.totalAmount?.toString(),
       status: booking.status,
+    };
+  }
+
+  private changeRequestInclude() {
+    return {
+      booking: {
+        include: this.bookingInclude,
+      },
+      requestedBy: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          role: true,
+        },
+      },
+      reviewedBy: {
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          role: true,
+        },
+      },
     };
   }
 }
