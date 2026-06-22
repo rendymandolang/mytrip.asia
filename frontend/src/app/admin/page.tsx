@@ -196,6 +196,27 @@ export default function AdminPage() {
             </Link>
 
             <Link
+              href="/admin/finance"
+              className="rounded bg-slate-700 px-4 py-2 text-white"
+            >
+              Finance
+            </Link>
+
+            <Link
+              href="/admin/operations"
+              className="rounded bg-slate-700 px-4 py-2 text-white"
+            >
+              Operations
+            </Link>
+
+            <Link
+              href="/admin/channel-manager"
+              className="rounded bg-slate-700 px-4 py-2 text-white"
+            >
+              Channel
+            </Link>
+
+            <Link
               href="/admin/settings"
               className="rounded bg-slate-700 px-4 py-2 text-white"
             >
@@ -333,6 +354,7 @@ export default function AdminPage() {
                         </td>
                         <td className="p-3">
                           {booking.user?.fullName ||
+                            booking.guest?.fullName ||
                             "-"}
                         </td>
                         <td className="p-3">
@@ -460,6 +482,42 @@ export default function AdminPage() {
             </h2>
             <p className="mt-2 text-sm text-slate-500">
               Manage daily, monthly and yearly rates
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/finance"
+            className="rounded-lg bg-white p-6 shadow transition hover:shadow-lg"
+          >
+            <h2 className="text-xl font-bold">
+              Finance
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Manage invoices, payments and receivables
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/operations"
+            className="rounded-lg bg-white p-6 shadow transition hover:shadow-lg"
+          >
+            <h2 className="text-xl font-bold">
+              Operations
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Handle check-in, check-out and housekeeping
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/channel-manager"
+            className="rounded-lg bg-white p-6 shadow transition hover:shadow-lg"
+          >
+            <h2 className="text-xl font-bold">
+              Channel Manager
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Queue OTA events and ARI sync
             </p>
           </Link>
 

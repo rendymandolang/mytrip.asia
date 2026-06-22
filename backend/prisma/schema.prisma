@@ -30,6 +30,53 @@ enum RentalTerm {
   YEARLY
 }
 
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIAL
+  PAID
+  VOID
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIAL
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+  PAYMENT_GATEWAY
+  OTA_COLLECT
+  OTHER
+}
+
+enum ChannelSyncDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum ChannelSyncStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+enum ChannelEventType {
+  ARI_UPDATE
+  BOOKING_CREATED
+  BOOKING_UPDATED
+  BOOKING_CANCELLED
+  AVAILABILITY_SYNC
+  RATE_SYNC
+}
+
 enum BedroomType {
   STUDIO
   ONE_BR
@@ -121,6 +168,8 @@ model Property {
   roomTypes    RoomType[]
   pricingRules PricingRule[]
   mediaAssets  MediaAsset[]
+  channelConnections ChannelConnection[]
+  channelSyncEvents ChannelSyncEvent[]
 
   createdAt    DateTime @default(now())
 
@@ -219,11 +268,16 @@ model Booking {
   source      String?
 
   status      BookingStatus  @default(PENDING)
+  checkedInAt DateTime?
+  checkedOutAt DateTime?
 
   user        User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
   guest       Guest?         @relation(fields: [guestId], references: [id], onDelete: SetNull)
   room        Room           @relation(fields: [roomId], references: [id])
 
+  invoice     Invoice?
+  payments    Payment[]
+  channelSyncEvents ChannelSyncEvent[]
   auditLogs   BookingAuditLog[]
   changeRequests BookingChangeRequest[]
   roomAllocations RoomAllocation[]
@@ -235,6 +289,55 @@ model Booking {
   @@index([guestId])
   @@index([checkIn])
   @@index([checkOut])
+}
+
+model Invoice {
+  id            Int           @id @default(autoincrement())
+  bookingId     Int           @unique
+  invoiceNumber String        @unique
+  subtotal      Decimal       @default(0) @db.Decimal(12,2)
+  serviceFee    Decimal       @default(0) @db.Decimal(12,2)
+  cleaningFee   Decimal       @default(0) @db.Decimal(12,2)
+  deposit       Decimal       @default(0) @db.Decimal(12,2)
+  totalAmount   Decimal       @db.Decimal(12,2)
+  paidAmount    Decimal       @default(0) @db.Decimal(12,2)
+  balanceDue    Decimal       @db.Decimal(12,2)
+  status        InvoiceStatus @default(ISSUED)
+  dueDate       DateTime?
+  issuedAt      DateTime      @default(now())
+  paidAt        DateTime?
+
+  booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  payments      Payment[]
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([status])
+  @@index([dueDate])
+  @@index([createdAt])
+}
+
+model Payment {
+  id          Int           @id @default(autoincrement())
+  invoiceId   Int?
+  bookingId   Int
+  amount      Decimal       @db.Decimal(12,2)
+  method      PaymentMethod @default(OTHER)
+  status      PaymentStatus @default(PAID)
+  reference   String?
+  notes       String?
+  paidAt      DateTime?
+
+  invoice     Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  booking     Booking       @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  createdAt   DateTime      @default(now())
+
+  @@index([invoiceId])
+  @@index([bookingId])
+  @@index([status])
+  @@index([paidAt])
 }
 
 model Guest {
@@ -428,4 +531,52 @@ model DailyAvailability {
   @@unique([date, roomTypeId])
   @@index([roomTypeId])
   @@index([date])
+}
+
+model ChannelConnection {
+  id                 Int                @id @default(autoincrement())
+  propertyId         Int
+  provider           String
+  externalPropertyId String?
+  active             Boolean            @default(true)
+  settings           Json?
+  lastSyncAt         DateTime?
+
+  property           Property           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  events             ChannelSyncEvent[]
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([propertyId])
+  @@index([provider])
+  @@index([active])
+}
+
+model ChannelSyncEvent {
+  id            Int                  @id @default(autoincrement())
+  connectionId  Int?
+  propertyId    Int?
+  bookingId     Int?
+  direction     ChannelSyncDirection
+  eventType     ChannelEventType
+  status        ChannelSyncStatus    @default(PENDING)
+  payload       Json?
+  errorMessage  String?
+  attempts      Int                  @default(0)
+  processedAt   DateTime?
+
+  connection    ChannelConnection?   @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  property      Property?            @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  booking       Booking?             @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime             @default(now())
+
+  @@index([connectionId])
+  @@index([propertyId])
+  @@index([bookingId])
+  @@index([direction])
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
 }

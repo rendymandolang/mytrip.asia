@@ -48,6 +48,13 @@ export class AvailabilityService {
           include: {
             booking: {
               include: {
+                guest: {
+                  select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                  },
+                },
                 user: {
                   select: {
                     id: true,
@@ -75,6 +82,13 @@ export class AvailabilityService {
             },
           },
           include: {
+            guest: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
             user: {
               select: {
                 id: true,

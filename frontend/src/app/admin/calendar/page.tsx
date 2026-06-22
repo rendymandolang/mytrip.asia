@@ -44,6 +44,10 @@ type CalendarBooking = {
     fullName?: string;
     email?: string;
   };
+  guest?: {
+    fullName?: string;
+    email?: string;
+  };
 };
 
 type AvailabilityBlock = {
@@ -871,7 +875,9 @@ export default function PmsCalendarPage() {
 
                       const guest =
                         booking.user?.fullName ||
+                        booking.guest?.fullName ||
                         booking.user?.email ||
+                        booking.guest?.email ||
                         `Booking #${booking.id}`;
 
                       return (

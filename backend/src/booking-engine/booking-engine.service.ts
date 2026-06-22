@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 
 import { BookingsService } from '../bookings/bookings.service';
+import { ChannelManagerService } from '../channel-manager/channel-manager.service';
+import { FinanceService } from '../finance/finance.service';
 import { PricingRulesService } from '../pricing-rules/pricing-rules.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -14,6 +16,8 @@ export class BookingEngineService {
     private prisma: PrismaService,
     private bookingsService: BookingsService,
     private pricingRulesService: PricingRulesService,
+    private financeService: FinanceService,
+    private channelManagerService: ChannelManagerService,
   ) {}
 
   async availability(query: any) {
@@ -158,10 +162,21 @@ export class BookingEngineService {
         status: 'PENDING',
       });
 
+    const invoice =
+      await this.financeService.createInvoiceForBooking(
+        booking.id,
+      );
+
+    await this.channelManagerService.queueBookingOutbound(
+      booking.id,
+      'BOOKING_CREATED',
+    );
+
     return {
       booking,
       guest,
       quote: selectedOption.quote,
+      invoice,
     };
   }
 

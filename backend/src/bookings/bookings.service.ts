@@ -186,6 +186,12 @@ export class BookingsService {
             },
           });
 
+          await this.queueBookingSyncEvent(
+            tx,
+            booking,
+            action,
+          );
+
           return booking;
         },
       );
@@ -424,6 +430,12 @@ export class BookingsService {
             },
           });
 
+          await this.queueBookingSyncEvent(
+            tx,
+            updatedBooking,
+            'BOOKING_CHANGE_APPROVED',
+          );
+
           return {
             reviewedRequest,
             updatedBooking,
@@ -582,6 +594,46 @@ export class BookingsService {
         roomId: booking.roomId,
         date,
       })),
+    });
+  }
+
+  private async queueBookingSyncEvent(
+    tx: any,
+    booking: any,
+    action: string,
+  ) {
+    const propertyId =
+      booking.room?.propertyId ||
+      booking.room?.property?.id;
+
+    if (!propertyId) {
+      return;
+    }
+
+    await tx.channelSyncEvent.create({
+      data: {
+        propertyId,
+        bookingId: booking.id,
+        direction: 'OUTBOUND',
+        eventType:
+          booking.status === 'CANCELLED'
+            ? 'BOOKING_CANCELLED'
+            : 'BOOKING_UPDATED',
+        payload: {
+          bookingId: booking.id,
+          action,
+          roomId: booking.roomId,
+          checkIn:
+            booking.checkIn instanceof Date
+              ? booking.checkIn.toISOString()
+              : booking.checkIn,
+          checkOut:
+            booking.checkOut instanceof Date
+              ? booking.checkOut.toISOString()
+              : booking.checkOut,
+          status: booking.status,
+        },
+      },
     });
   }
 

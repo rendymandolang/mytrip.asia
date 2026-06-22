@@ -546,6 +546,7 @@ export default function BookingsPage() {
                     <div className="mt-2 text-sm text-gray-600">
                       Guest:{" "}
                       {request.booking?.user?.fullName ||
+                        request.booking?.guest?.fullName ||
                         "-"}{" "}
                       | Room:{" "}
                       {request.booking?.room?.name ||
@@ -721,7 +722,9 @@ export default function BookingsPage() {
                 <td className="p-4">{booking.id}</td>
 
                 <td className="p-4">
-                  {booking.user?.fullName}
+                  {booking.user?.fullName ||
+                    booking.guest?.fullName ||
+                    "-"}
                 </td>
 
                 <td className="p-4">

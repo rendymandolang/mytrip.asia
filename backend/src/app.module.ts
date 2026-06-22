@@ -18,6 +18,9 @@ import { PricingRulesModule } from './pricing-rules/pricing-rules.module';
 import { MediaModule } from './media/media.module';
 import { BookingEngineModule } from './booking-engine/booking-engine.module';
 import { OwnerModule } from './owner/owner.module';
+import { FinanceModule } from './finance/finance.module';
+import { OperationsModule } from './operations/operations.module';
+import { ChannelManagerModule } from './channel-manager/channel-manager.module';
 
 @Module({
   imports: [
@@ -39,6 +42,9 @@ import { OwnerModule } from './owner/owner.module';
     MediaModule,
     BookingEngineModule,
     OwnerModule,
+    FinanceModule,
+    OperationsModule,
+    ChannelManagerModule,
   ],
 
   controllers: [
