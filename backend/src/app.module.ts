@@ -22,6 +22,8 @@ import { FinanceModule } from './finance/finance.module';
 import { OperationsModule } from './operations/operations.module';
 import { ChannelManagerModule } from './channel-manager/channel-manager.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { AdminUsersModule } from './admin-users/admin-users.module';
+import { AccountModule } from './account/account.module';
 
 @Module({
   imports: [
@@ -47,6 +49,8 @@ import { UploadsModule } from './uploads/uploads.module';
     OperationsModule,
     ChannelManagerModule,
     UploadsModule,
+    AdminUsersModule,
+    AccountModule,
   ],
 
   controllers: [

@@ -15,6 +15,9 @@ export class AuthService {
     fullName: true,
     email: true,
     role: true,
+    accountStatus: true,
+    accountReviewNote: true,
+    accountReviewedAt: true,
     department: true,
     jobTitle: true,
     phone: true,
@@ -82,6 +85,8 @@ export class AuthService {
         email,
         password: hashedPassword,
         role: role as any,
+        accountStatus:
+          role === 'OWNER' ? 'PENDING' : 'APPROVED',
         phone:
           String(data.phone || '').trim() || null,
         department:
@@ -174,6 +179,19 @@ export class AuthService {
       };
     }
 
+    if (
+      ['REJECTED', 'SUSPENDED'].includes(
+        user.accountStatus,
+      )
+    ) {
+      return {
+        message:
+          user.accountStatus === 'REJECTED'
+            ? 'Account registration was rejected'
+            : 'Account is suspended',
+      };
+    }
+
     const token = jwt.sign(
       {
         sub: user.id,
@@ -193,6 +211,9 @@ export class AuthService {
         fullName: user.fullName,
         email: user.email,
         role: user.role,
+        accountStatus: user.accountStatus,
+        accountReviewNote: user.accountReviewNote,
+        accountReviewedAt: user.accountReviewedAt,
         department: user.department,
         jobTitle: user.jobTitle,
         phone: user.phone,

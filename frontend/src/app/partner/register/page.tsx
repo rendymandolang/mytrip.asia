@@ -136,7 +136,8 @@ export default function PartnerRegisterPage() {
             Partner Registration
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Your account will open the partner dashboard.
+            Your account will be reviewed before property
+            management is opened.
           </p>
 
           <form

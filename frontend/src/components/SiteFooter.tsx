@@ -48,6 +48,7 @@ export default function SiteFooter() {
           </h2>
           <div className="grid gap-2 text-sm">
             <Link href="/login">Login</Link>
+            <Link href="/account">My Account</Link>
             <Link href="/partner/register">
               Partner Registration
             </Link>

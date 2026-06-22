@@ -119,7 +119,10 @@ export class BookingEngineService {
     };
   }
 
-  async createBooking(data: any) {
+  async createBooking(
+    data: any,
+    actorUserId?: number,
+  ) {
     const availability =
       await this.availability(data);
 
@@ -140,8 +143,17 @@ export class BookingEngineService {
       );
     }
 
+    const actorUser = actorUserId
+      ? await this.prisma.user.findUnique({
+          where: {
+            id: actorUserId,
+          },
+        })
+      : null;
+
     const guestData = this.normalizeGuestData(
       data.guest || data,
+      actorUser,
     );
 
     const guest = await this.prisma.guest.create({
@@ -150,6 +162,7 @@ export class BookingEngineService {
 
     const booking =
       await this.bookingsService.create({
+        userId: actorUser?.id || null,
         guestId: guest.id,
         roomId: selectedOption.firstAvailableRoomId,
         checkIn: availability.checkIn,
@@ -305,11 +318,19 @@ export class BookingEngineService {
     return !block;
   }
 
-  private normalizeGuestData(data: any) {
+  private normalizeGuestData(
+    data: any,
+    actorUser?: any,
+  ) {
     const fullName = String(
-      data.fullName || data.name || '',
+      data.fullName ||
+        data.name ||
+        actorUser?.fullName ||
+        '',
     ).trim();
-    const email = String(data.email || '').trim();
+    const email = String(
+      data.email || actorUser?.email || '',
+    ).trim();
 
     if (!fullName) {
       throw new BadRequestException(
@@ -326,7 +347,7 @@ export class BookingEngineService {
     return {
       fullName,
       email,
-      phone: data.phone || null,
+      phone: data.phone || actorUser?.phone || null,
       country: data.country || null,
       notes: data.notes || null,
     };

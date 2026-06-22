@@ -29,6 +29,9 @@ export default function OwnerPortalPage() {
   const [additionalInfo, setAdditionalInfo] =
     useState("");
   const [loading, setLoading] = useState(false);
+  const [accountStatus, setAccountStatus] =
+    useState("APPROVED");
+  const [reviewNote, setReviewNote] = useState("");
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -43,6 +46,13 @@ export default function OwnerPortalPage() {
 
       if (user.role !== "OWNER") {
         router.push("/admin");
+        return;
+      }
+
+      setAccountStatus(user.accountStatus || "APPROVED");
+      setReviewNote(user.accountReviewNote || "");
+
+      if (user.accountStatus !== "APPROVED") {
         return;
       }
     } catch {
@@ -139,6 +149,33 @@ export default function OwnerPortalPage() {
           Public Site
         </Link>
       </div>
+
+      {accountStatus !== "APPROVED" && (
+        <div className="rounded-lg bg-white p-8 shadow">
+          <div className="text-sm font-semibold uppercase text-blue-700">
+            Partnership Registration
+          </div>
+          <h2 className="mt-2 text-2xl font-bold">
+            {accountStatus === "PENDING"
+              ? "Waiting for admin approval"
+              : "Registration not approved"}
+          </h2>
+          <p className="mt-3 max-w-2xl text-slate-600">
+            {accountStatus === "PENDING"
+              ? "Your partner account has been received. MYTRIP admin will review the registration before property management is opened."
+              : reviewNote ||
+                "Your partner registration was rejected. Please contact MYTRIP admin for more information."}
+          </p>
+          <Link
+            href="/"
+            className="mt-5 inline-block rounded bg-slate-900 px-4 py-2 text-white"
+          >
+            Back to Public Site
+          </Link>
+        </div>
+      )}
+
+      {accountStatus !== "APPROVED" ? null : (
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <div className="rounded-lg bg-white p-4 shadow">
@@ -285,6 +322,7 @@ export default function OwnerPortalPage() {
           </div>
         )}
       </div>
+      )}
     </main>
   );
 }

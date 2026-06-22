@@ -217,6 +217,20 @@ export default function AdminPage() {
             </Link>
 
             <Link
+              href="/admin/users"
+              className="rounded bg-slate-700 px-4 py-2 text-white"
+            >
+              Users
+            </Link>
+
+            <Link
+              href="/admin/partnerships"
+              className="rounded bg-slate-700 px-4 py-2 text-white"
+            >
+              Partners
+            </Link>
+
+            <Link
               href="/admin/settings"
               className="rounded bg-slate-700 px-4 py-2 text-white"
             >
@@ -530,6 +544,30 @@ export default function AdminPage() {
             </h2>
             <p className="mt-2 text-sm text-slate-500">
               Manage property and room galleries
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/users"
+            className="rounded-lg bg-white p-6 shadow transition hover:shadow-lg"
+          >
+            <h2 className="text-xl font-bold">
+              User Management
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Review users, status and account access
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/partnerships"
+            className="rounded-lg bg-white p-6 shadow transition hover:shadow-lg"
+          >
+            <h2 className="text-xl font-bold">
+              Partnerships
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Approve or reject property owner registrations
             </p>
           </Link>
         </div>

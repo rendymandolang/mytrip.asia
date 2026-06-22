@@ -15,6 +15,13 @@ enum UserRole {
   OWNER
 }
 
+enum AccountStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
 enum PropertyType {
   HOTEL
   VILLA
@@ -117,6 +124,10 @@ model User {
   email     String    @unique
   password  String
   role      UserRole  @default(CUSTOMER)
+  accountStatus AccountStatus @default(APPROVED)
+  accountReviewNote String?
+  accountReviewedAt DateTime?
+  accountReviewedById Int?
   department String?
   jobTitle   String?
   phone      String?
@@ -125,6 +136,8 @@ model User {
   socialLinks Json?
   createdAt DateTime  @default(now())
 
+  accountReviewedBy User? @relation("AccountReviewedBy", fields: [accountReviewedById], references: [id], onDelete: SetNull)
+  reviewedAccounts User[] @relation("AccountReviewedBy")
   bookings  Booking[]
   ownedProperties Property[] @relation("PropertyOwner")
   uploadedMedia MediaAsset[] @relation("MediaUploader")
@@ -132,6 +145,10 @@ model User {
   requestedBookingChanges BookingChangeRequest[] @relation("BookingChangeRequestedBy")
   reviewedBookingChanges  BookingChangeRequest[] @relation("BookingChangeReviewedBy")
   availabilityBlocks AvailabilityBlock[] @relation("AvailabilityBlockCreatedBy")
+
+  @@index([role])
+  @@index([accountStatus])
+  @@index([accountReviewedById])
 }
 
 model Property {

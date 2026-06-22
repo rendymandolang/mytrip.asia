@@ -81,6 +81,28 @@ export default function PropertyDetailPage() {
     loadProperty();
   }, [params.identifier]);
 
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+
+    if (!storedUser) {
+      return;
+    }
+
+    try {
+      const user = JSON.parse(storedUser);
+
+      if (user.role !== "CUSTOMER") {
+        return;
+      }
+
+      setGuestName(user.fullName || "");
+      setGuestEmail(user.email || "");
+      setGuestPhone(user.phone || "");
+    } catch {
+      return;
+    }
+  }, []);
+
   async function loadProperty() {
     try {
       setLoading(true);
@@ -163,6 +185,11 @@ export default function PropertyDetailPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...(localStorage.getItem("token")
+              ? {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                }
+              : {}),
           },
           body: JSON.stringify({
             slug: String(paramsIdentifier()),

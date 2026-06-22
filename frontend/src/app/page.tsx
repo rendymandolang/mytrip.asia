@@ -54,8 +54,20 @@ export default function HomePage() {
   const [rentalTerm, setRentalTerm] = useState("MONTHLY");
   const [sort, setSort] = useState("rating");
   const [loading, setLoading] = useState(false);
+  const [currentUser, setCurrentUser] =
+    useState<any>(null);
 
   useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+
+    if (storedUser) {
+      try {
+        setCurrentUser(JSON.parse(storedUser));
+      } catch {
+        setCurrentUser(null);
+      }
+    }
+
     loadDestinations();
     searchProperties();
   }, []);
@@ -140,6 +152,37 @@ export default function HomePage() {
           </Link>
 
           <div className="flex flex-wrap justify-end gap-2">
+            {currentUser?.role === "CUSTOMER" && (
+              <Link
+                href="/account"
+                className="rounded bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+              >
+                My Account
+              </Link>
+            )}
+
+            {currentUser?.role === "OWNER" && (
+              <Link
+                href="/owner"
+                className="rounded bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+              >
+                Owner Portal
+              </Link>
+            )}
+
+            {[
+              "ADMIN",
+              "SUPERADMIN",
+              "FINANCE_HEAD",
+            ].includes(currentUser?.role) && (
+              <Link
+                href="/admin"
+                className="rounded bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+              >
+                Dashboard
+              </Link>
+            )}
+
             <Link
               href="/register"
               className="rounded bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
