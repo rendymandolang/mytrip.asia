@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { compressImageForUpload } from "@/lib/imageCompression";
+
+const MAX_MEDIA_IMAGE_BYTES = 4.5 * 1024 * 1024;
 
 export default function MediaPage() {
   const [media, setMedia] = useState<any[]>([]);
@@ -111,7 +114,15 @@ export default function MediaPage() {
         body: JSON.stringify(body),
       });
 
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const data = await response
+          .json()
+          .catch(() => null);
+
+        throw new Error(
+          data?.message || "Failed to save media",
+        );
+      }
 
       setUrl("");
       setFile(null);
@@ -119,8 +130,12 @@ export default function MediaPage() {
       setSortOrder("0");
       await loadData();
       alert("Media saved");
-    } catch {
-      alert("Failed to save media");
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to save media",
+      );
     } finally {
       setLoading(false);
     }
@@ -130,8 +145,13 @@ export default function MediaPage() {
     setUploading(true);
 
     try {
+      const uploadFile =
+        await compressImageForUpload(selectedFile, {
+          maxBytes: MAX_MEDIA_IMAGE_BYTES,
+          maxDimension: 1920,
+        });
       const formData = new FormData();
-      formData.append("file", selectedFile);
+      formData.append("file", uploadFile);
 
       const response = await fetch("/api/uploads/media", {
         method: "POST",
@@ -226,7 +246,7 @@ export default function MediaPage() {
           />
 
           <input
-            type="url"
+            type="text"
             placeholder="Image or video URL"
             value={url}
             onChange={(e) => setUrl(e.target.value)}

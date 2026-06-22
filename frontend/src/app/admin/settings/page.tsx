@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { compressImageForUpload } from "@/lib/imageCompression";
+
+const MAX_AVATAR_BYTES = 900 * 1024;
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -141,8 +144,13 @@ export default function SettingsPage() {
     try {
       setAvatarUploading(true);
 
+      const compressedAvatar =
+        await compressImageForUpload(avatarFile, {
+          maxBytes: MAX_AVATAR_BYTES,
+          maxDimension: 768,
+        });
       const formData = new FormData();
-      formData.append("file", avatarFile);
+      formData.append("file", compressedAvatar);
 
       const response = await fetch("/api/uploads/media", {
         method: "POST",
@@ -164,9 +172,53 @@ export default function SettingsPage() {
         throw new Error("Avatar must be an image");
       }
 
-      setAvatarUrl(data.url);
+      const profileResponse = await fetch(
+        "/api/auth/profile",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            fullName,
+            department,
+            jobTitle,
+            phone,
+            avatarUrl: data.url,
+            bio,
+            socialLinks: {
+              website,
+              linkedin,
+              instagram,
+              facebook,
+              x: xProfile,
+            },
+          }),
+        },
+      );
+
+      if (!profileResponse.ok) {
+        const payload = await profileResponse
+          .json()
+          .catch(() => null);
+
+        throw new Error(
+          payload?.message ||
+            "Avatar uploaded, but profile could not be saved",
+        );
+      }
+
+      const updatedProfile =
+        await profileResponse.json();
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(updatedProfile),
+      );
+      setAvatarUrl(updatedProfile.avatarUrl || data.url);
       setAvatarFile(null);
-      alert("Avatar uploaded. Save profile to apply it.");
+      alert("Profile photo updated");
     } catch (error) {
       alert(
         error instanceof Error
@@ -244,21 +296,9 @@ export default function SettingsPage() {
               : "Upload Photo"}
           </button>
 
-          <label className="mb-2 block text-sm font-medium">
-            Avatar URL
-          </label>
-          <input
-            type="url"
-            value={avatarUrl}
-            onChange={(e) =>
-              setAvatarUrl(e.target.value)
-            }
-            className="w-full rounded border p-3"
-            placeholder="https://..."
-          />
-
           <p className="mt-3 text-sm text-slate-500">
-            JPG, PNG or WEBP. Maximum upload size is 5MB.
+            JPG, PNG or WEBP. Large images are compressed
+            before upload.
           </p>
         </div>
 

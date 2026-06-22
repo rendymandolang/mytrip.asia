@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { compressImageForUpload } from "@/lib/imageCompression";
+
+const MAX_AVATAR_BYTES = 900 * 1024;
 
 function formatCurrency(value: string | number | null) {
   return `Rp ${Number(value || 0).toLocaleString("id-ID")}`;
@@ -41,6 +44,10 @@ export default function AccountPage() {
   const [bio, setBio] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [avatarFile, setAvatarFile] =
+    useState<File | null>(null);
+  const [avatarUploading, setAvatarUploading] =
+    useState(false);
   const [message, setMessage] = useState("");
 
   const stats = useMemo(() => {
@@ -157,6 +164,95 @@ export default function AccountPage() {
     }
   }
 
+  async function uploadAvatar() {
+    if (!avatarFile) {
+      setMessage("Choose a profile photo first");
+      return;
+    }
+
+    try {
+      setAvatarUploading(true);
+      setMessage("");
+
+      const compressedAvatar =
+        await compressImageForUpload(avatarFile, {
+          maxBytes: MAX_AVATAR_BYTES,
+          maxDimension: 768,
+        });
+      const formData = new FormData();
+      formData.append("file", compressedAvatar);
+
+      const uploadResponse = await fetch(
+        "/api/uploads/media",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem(
+              "token",
+            )}`,
+          },
+          body: formData,
+        },
+      );
+
+      const uploadData = await uploadResponse
+        .json()
+        .catch(() => null);
+
+      if (!uploadResponse.ok) {
+        throw new Error(
+          uploadData?.message || "Avatar upload failed",
+        );
+      }
+
+      if (uploadData.mediaType !== "IMAGE") {
+        throw new Error("Avatar must be an image");
+      }
+
+      const profileResponse = await fetch(
+        "/api/auth/profile",
+        {
+          method: "PUT",
+          headers: headers(),
+          body: JSON.stringify({
+            fullName,
+            phone,
+            avatarUrl: uploadData.url,
+            bio,
+          }),
+        },
+      );
+
+      const updatedProfile = await profileResponse
+        .json()
+        .catch(() => null);
+
+      if (!profileResponse.ok) {
+        throw new Error(
+          updatedProfile?.message ||
+            "Avatar uploaded, but profile could not be saved",
+        );
+      }
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(updatedProfile),
+      );
+      setProfile(updatedProfile);
+      setAvatarUrl(updatedProfile.avatarUrl || "");
+      setAvatarFile(null);
+      setMessage("Profile photo updated");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Profile photo could not be updated",
+      );
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -256,13 +352,25 @@ export default function AccountPage() {
               placeholder="Phone"
             />
             <input
-              value={avatarUrl}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
               onChange={(event) =>
-                setAvatarUrl(event.target.value)
+                setAvatarFile(
+                  event.target.files?.[0] || null,
+                )
               }
-              className="w-full rounded border border-slate-200 p-3"
-              placeholder="Avatar URL"
+              className="w-full rounded border border-slate-200 bg-white p-3"
             />
+            <button
+              type="button"
+              onClick={uploadAvatar}
+              disabled={avatarUploading}
+              className="w-full rounded bg-slate-900 p-3 font-semibold text-white disabled:bg-slate-400"
+            >
+              {avatarUploading
+                ? "Uploading..."
+                : "Upload Profile Photo"}
+            </button>
             <textarea
               value={bio}
               onChange={(event) =>
