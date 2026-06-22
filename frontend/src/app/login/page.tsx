@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -35,16 +36,6 @@ export default function LoginPage() {
 
       const data =
         await response.json();
-
-      console.log(
-        "STATUS:",
-        response.status,
-      );
-
-      console.log(
-        "RESPONSE:",
-        data,
-      );
 
       if (
         response.ok &&
@@ -86,7 +77,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100">
+    <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
       <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-lg">
         <h1 className="mb-2 text-center text-3xl font-bold">
           MYTRIP
@@ -145,6 +136,21 @@ export default function LoginPage() {
               : "Login"}
           </button>
         </form>
+
+        <div className="mt-5 flex flex-wrap justify-between gap-3 text-sm">
+          <Link
+            href="/register"
+            className="font-semibold text-blue-700"
+          >
+            Buat Akun
+          </Link>
+          <Link
+            href="/partner/register"
+            className="font-semibold text-blue-700"
+          >
+            Daftarkan Property Saya
+          </Link>
+        </div>
       </div>
     </main>
   );

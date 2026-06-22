@@ -139,12 +139,28 @@ export default function HomePage() {
             </div>
           </Link>
 
-          <Link
-            href="/login"
-            className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-          >
-            Partner Login
-          </Link>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Link
+              href="/register"
+              className="rounded bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+            >
+              Buat Akun
+            </Link>
+
+            <Link
+              href="/partner/register"
+              className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
+            >
+              Daftarkan Property Saya
+            </Link>
+
+            <Link
+              href="/login"
+              className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+            >
+              Login
+            </Link>
+          </div>
         </div>
       </header>
 

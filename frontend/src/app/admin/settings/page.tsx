@@ -8,6 +8,10 @@ export default function SettingsPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
+  const [avatarUploading, setAvatarUploading] =
+    useState(false);
+  const [avatarFile, setAvatarFile] =
+    useState<File | null>(null);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
@@ -121,9 +125,62 @@ export default function SettingsPage() {
     }
   }
 
+  async function uploadAvatar() {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    if (!avatarFile) {
+      alert("Choose an avatar file first");
+      return;
+    }
+
+    try {
+      setAvatarUploading(true);
+
+      const formData = new FormData();
+      formData.append("file", avatarFile);
+
+      const response = await fetch("/api/uploads/media", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message || "Avatar upload failed",
+        );
+      }
+
+      if (data.mediaType !== "IMAGE") {
+        throw new Error("Avatar must be an image");
+      }
+
+      setAvatarUrl(data.url);
+      setAvatarFile(null);
+      alert("Avatar uploaded. Save profile to apply it.");
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to upload avatar",
+      );
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
   return (
-    <main className="min-h-screen bg-slate-100 p-8">
-      <div className="mb-6 flex items-center justify-between">
+    <main className="min-h-screen bg-slate-100 p-4 md:p-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold">
             Profile Settings
@@ -165,6 +222,29 @@ export default function SettingsPage() {
           </div>
 
           <label className="mb-2 block text-sm font-medium">
+            Upload Avatar
+          </label>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) =>
+              setAvatarFile(e.target.files?.[0] || null)
+            }
+            className="mb-3 w-full rounded border bg-white p-3"
+          />
+
+          <button
+            type="button"
+            onClick={uploadAvatar}
+            disabled={avatarUploading}
+            className="mb-4 rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:bg-slate-400"
+          >
+            {avatarUploading
+              ? "Uploading..."
+              : "Upload Photo"}
+          </button>
+
+          <label className="mb-2 block text-sm font-medium">
             Avatar URL
           </label>
           <input
@@ -178,8 +258,7 @@ export default function SettingsPage() {
           />
 
           <p className="mt-3 text-sm text-slate-500">
-            File upload can be added later when storage is
-            ready.
+            JPG, PNG or WEBP. Maximum upload size is 5MB.
           </p>
         </div>
 

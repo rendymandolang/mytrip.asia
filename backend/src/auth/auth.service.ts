@@ -1,4 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
@@ -22,8 +25,46 @@ export class AuthService {
   };
 
   async register(data: any) {
+    const fullName = String(
+      data.fullName || '',
+    ).trim();
+    const email = String(data.email || '')
+      .trim()
+      .toLowerCase();
+    const password = String(data.password || '');
+
+    if (!fullName) {
+      throw new BadRequestException(
+        'Full name is required',
+      );
+    }
+
+    if (!email) {
+      throw new BadRequestException(
+        'Email is required',
+      );
+    }
+
+    if (password.length < 6) {
+      throw new BadRequestException(
+        'Password must be at least 6 characters',
+      );
+    }
+
+    const existing = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+
+    if (existing) {
+      throw new BadRequestException(
+        'Email is already registered',
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(
-      data.password,
+      password,
       10,
     );
     const requestedRole = String(
@@ -37,10 +78,14 @@ export class AuthService {
 
     return this.prisma.user.create({
       data: {
-        fullName: data.fullName,
-        email: data.email,
+        fullName,
+        email,
         password: hashedPassword,
         role: role as any,
+        phone:
+          String(data.phone || '').trim() || null,
+        department:
+          role === 'OWNER' ? 'Partner' : null,
       },
       select: this.profileSelect,
     });
@@ -70,12 +115,33 @@ export class AuthService {
         id: userId,
       },
       data: {
-        fullName: data.fullName,
-        department: data.department,
-        jobTitle: data.jobTitle,
-        phone: data.phone,
-        avatarUrl: data.avatarUrl,
-        bio: data.bio,
+        fullName:
+          data.fullName === undefined
+            ? undefined
+            : String(data.fullName || '').trim(),
+        department:
+          data.department === undefined
+            ? undefined
+            : String(data.department || '').trim() ||
+              null,
+        jobTitle:
+          data.jobTitle === undefined
+            ? undefined
+            : String(data.jobTitle || '').trim() ||
+              null,
+        phone:
+          data.phone === undefined
+            ? undefined
+            : String(data.phone || '').trim() || null,
+        avatarUrl:
+          data.avatarUrl === undefined
+            ? undefined
+            : String(data.avatarUrl || '').trim() ||
+              null,
+        bio:
+          data.bio === undefined
+            ? undefined
+            : String(data.bio || '').trim() || null,
         socialLinks,
       },
       select: this.profileSelect,
@@ -85,7 +151,9 @@ export class AuthService {
   async login(data: any) {
     const user = await this.prisma.user.findUnique({
       where: {
-        email: data.email,
+        email: String(data.email || '')
+          .trim()
+          .toLowerCase(),
       },
     });
 

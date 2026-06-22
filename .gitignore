@@ -12,6 +12,7 @@ out/
 
 # NestJS
 dist/
+backend/uploads/
 
 # Prisma
 generated/

@@ -12,10 +12,12 @@ export default function MediaPage() {
   const [target, setTarget] = useState("property");
   const [targetId, setTargetId] = useState("");
   const [url, setUrl] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState("gallery");
   const [altText, setAltText] = useState("");
   const [sortOrder, setSortOrder] = useState("0");
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -70,9 +72,23 @@ export default function MediaPage() {
 
     try {
       setLoading(true);
+      let mediaUrl = url.trim();
+      let mediaType = "IMAGE";
+
+      if (file) {
+        const upload = await uploadFile(file);
+        mediaUrl = upload.url;
+        mediaType = upload.mediaType || "IMAGE";
+      }
+
+      if (!mediaUrl) {
+        alert("Please choose a file or enter a media URL");
+        return;
+      }
+
       const body: any = {
-        url,
-        mediaType: "IMAGE",
+        url: mediaUrl,
+        mediaType,
         category,
         altText,
         sortOrder,
@@ -98,6 +114,7 @@ export default function MediaPage() {
       if (!response.ok) throw new Error();
 
       setUrl("");
+      setFile(null);
       setAltText("");
       setSortOrder("0");
       await loadData();
@@ -106,6 +123,33 @@ export default function MediaPage() {
       alert("Failed to save media");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function uploadFile(selectedFile: File) {
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const response = await fetch("/api/uploads/media", {
+        method: "POST",
+        headers: headers(),
+        body: formData,
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message || "Upload failed",
+        );
+      }
+
+      return data;
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -126,8 +170,8 @@ export default function MediaPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-8 text-slate-900">
-      <div className="mb-6 flex items-center justify-between">
+    <main className="min-h-screen bg-slate-100 p-4 text-slate-900 md:p-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold">
           Media Manager
         </h1>
@@ -183,12 +227,29 @@ export default function MediaPage() {
 
           <input
             type="url"
-            placeholder="Image URL"
+            placeholder="Image or video URL"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             className="rounded border p-3 md:col-span-2"
-            required
           />
+
+          <div className="rounded border border-dashed border-slate-300 bg-slate-50 p-3 md:col-span-3">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
+              Upload from device
+            </label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+              onChange={(e) =>
+                setFile(e.target.files?.[0] || null)
+              }
+              className="w-full rounded bg-white p-2 text-sm"
+            />
+            <p className="mt-2 text-xs text-slate-500">
+              JPG, PNG, WEBP max 5MB. MP4, WEBM, MOV
+              max 30MB.
+            </p>
+          </div>
 
           <input
             type="number"
@@ -209,10 +270,12 @@ export default function MediaPage() {
           />
 
           <button
-            disabled={loading}
+            disabled={loading || uploading}
             className="rounded bg-green-600 px-6 py-3 text-white"
           >
-            {loading ? "Saving..." : "Save Media"}
+            {loading || uploading
+              ? "Saving..."
+              : "Save Media"}
           </button>
         </form>
       </div>
@@ -223,11 +286,19 @@ export default function MediaPage() {
             key={item.id}
             className="overflow-hidden rounded-lg bg-white shadow"
           >
-            <img
-              src={item.url}
-              alt={item.altText || "Media"}
-              className="h-48 w-full object-cover"
-            />
+            {item.mediaType === "VIDEO" ? (
+              <video
+                src={item.url}
+                className="h-48 w-full object-cover"
+                controls
+              />
+            ) : (
+              <img
+                src={item.url}
+                alt={item.altText || "Media"}
+                className="h-48 w-full object-cover"
+              />
+            )}
             <div className="p-4">
               <div className="font-semibold">
                 {item.property?.name ||

@@ -21,6 +21,7 @@ import { OwnerModule } from './owner/owner.module';
 import { FinanceModule } from './finance/finance.module';
 import { OperationsModule } from './operations/operations.module';
 import { ChannelManagerModule } from './channel-manager/channel-manager.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { ChannelManagerModule } from './channel-manager/channel-manager.module';
     FinanceModule,
     OperationsModule,
     ChannelManagerModule,
+    UploadsModule,
   ],
 
   controllers: [
