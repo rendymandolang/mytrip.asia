@@ -51,18 +51,44 @@ export class CatalogService {
       isPublished: true,
       approvalStatus: 'APPROVED',
     };
+    const andFilters: any[] = [];
 
     if (query.destinationId) {
-      where.destinationId = this.toNumber(
+      const destinationId = this.toNumber(
         query.destinationId,
         'destinationId',
       );
+      const destination =
+        await this.prisma.destination.findUnique({
+          where: {
+            id: destinationId,
+          },
+        });
+
+      if (destination) {
+        andFilters.push(
+          this.destinationFallbackFilter(destination),
+        );
+      } else {
+        where.destinationId = destinationId;
+      }
     }
 
     if (query.destination) {
-      where.destination = {
-        slug: query.destination,
-      };
+      const destination =
+        await this.prisma.destination.findUnique({
+          where: {
+            slug: String(query.destination),
+          },
+        });
+
+      andFilters.push(
+        destination
+          ? this.destinationFallbackFilter(destination)
+          : this.destinationSlugFallbackFilter(
+              String(query.destination),
+            ),
+      );
     }
 
     if (query.country) {
@@ -98,32 +124,38 @@ export class CatalogService {
     }
 
     if (query.q) {
-      where.OR = [
-        {
-          name: {
-            contains: query.q,
-            mode: 'insensitive',
+      andFilters.push({
+        OR: [
+          {
+            name: {
+              contains: query.q,
+              mode: 'insensitive',
+            },
           },
-        },
-        {
-          area: {
-            contains: query.q,
-            mode: 'insensitive',
+          {
+            area: {
+              contains: query.q,
+              mode: 'insensitive',
+            },
           },
-        },
-        {
-          city: {
-            contains: query.q,
-            mode: 'insensitive',
+          {
+            city: {
+              contains: query.q,
+              mode: 'insensitive',
+            },
           },
-        },
-        {
-          country: {
-            contains: query.q,
-            mode: 'insensitive',
+          {
+            country: {
+              contains: query.q,
+              mode: 'insensitive',
+            },
           },
-        },
-      ];
+        ],
+      });
+    }
+
+    if (andFilters.length > 0) {
+      where.AND = andFilters;
     }
 
     const properties =
@@ -297,6 +329,89 @@ export class CatalogService {
 
       return (b.reviewCount || 0) - (a.reviewCount || 0);
     });
+  }
+
+  private destinationFallbackFilter(destination: any) {
+    return {
+      OR: [
+        {
+          destinationId: destination.id,
+        },
+        {
+          destination: {
+            slug: destination.slug,
+          },
+        },
+        {
+          city: {
+            equals: destination.city,
+            mode: 'insensitive',
+          },
+        },
+        {
+          city: {
+            contains: destination.city,
+            mode: 'insensitive',
+          },
+        },
+        {
+          area: {
+            contains: destination.city,
+            mode: 'insensitive',
+          },
+        },
+        {
+          fullAddress: {
+            contains: destination.city,
+            mode: 'insensitive',
+          },
+        },
+      ],
+    };
+  }
+
+  private destinationSlugFallbackFilter(slug: string) {
+    const term = slug
+      .split('-')
+      .slice(1)
+      .join(' ')
+      .trim();
+
+    if (!term) {
+      return {
+        destination: {
+          slug,
+        },
+      };
+    }
+
+    return {
+      OR: [
+        {
+          destination: {
+            slug,
+          },
+        },
+        {
+          city: {
+            contains: term,
+            mode: 'insensitive',
+          },
+        },
+        {
+          area: {
+            contains: term,
+            mode: 'insensitive',
+          },
+        },
+        {
+          fullAddress: {
+            contains: term,
+            mode: 'insensitive',
+          },
+        },
+      ],
+    };
   }
 
   private asArray(value: any) {

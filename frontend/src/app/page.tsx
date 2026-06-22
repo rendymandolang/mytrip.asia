@@ -21,6 +21,7 @@ const bedroomTypes = [
 ];
 
 const rentalTerms = [
+  ["", "All Rental Terms"],
   ["DAILY", "Daily"],
   ["MONTHLY", "Monthly"],
   ["YEARLY", "Yearly"],
@@ -51,7 +52,7 @@ export default function HomePage() {
   const [destination, setDestination] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [bedroomType, setBedroomType] = useState("");
-  const [rentalTerm, setRentalTerm] = useState("MONTHLY");
+  const [rentalTerm, setRentalTerm] = useState("");
   const [sort, setSort] = useState("rating");
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] =
@@ -80,14 +81,6 @@ export default function HomePage() {
     if (response.ok) {
       const data = await response.json();
       setDestinations(data);
-
-      const bali = data.find(
-        (item: any) => item.slug === "indonesia-bali",
-      );
-
-      if (bali) {
-        setDestination(bali.slug);
-      }
     }
   }
 
