@@ -53,11 +53,15 @@ export default function LoginPage() {
 
         alert("Login Success");
 
-        router.push(
-          data.user?.role === "OWNER"
-            ? "/owner"
-            : "/admin",
-        );
+        if (data.user?.role === "OWNER") {
+          router.push("/owner");
+        } else if (
+          data.user?.role === "CUSTOMER"
+        ) {
+          router.push("/");
+        } else {
+          router.push("/admin");
+        }
       } else {
         alert(
           data.message ||

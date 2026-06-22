@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import LanguageSelector from "@/components/LanguageSelector";
 import SiteFooter from "@/components/SiteFooter";
 import "./globals.css";
 
@@ -32,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <LanguageSelector />
         {children}
         <SiteFooter />
       </body>

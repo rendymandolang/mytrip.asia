@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function SiteFooter() {
   return (
     <footer className="border-t border-slate-200 bg-white text-slate-700">
-      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-8 md:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
+      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-8 md:grid-cols-[1.2fr_0.8fr_0.8fr]">
         <div>
           <Link href="/" className="flex items-center gap-3">
             <img
@@ -44,33 +44,13 @@ export default function SiteFooter() {
 
         <div>
           <h2 className="mb-3 text-sm font-bold uppercase text-slate-900">
-            Dashboard
+            Account
           </h2>
           <div className="grid gap-2 text-sm">
             <Link href="/login">Login</Link>
-            <Link href="/owner">Owner Portal</Link>
-            <Link href="/admin">Admin</Link>
-            <Link href="/admin/settings">Profile</Link>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="mb-3 text-sm font-bold uppercase text-slate-900">
-            Languages
-          </h2>
-          <div className="flex flex-wrap gap-2 text-sm">
-            <span className="rounded bg-slate-100 px-2 py-1">
-              English
-            </span>
-            <span className="rounded bg-slate-100 px-2 py-1">
-              Indonesia
-            </span>
-            <span className="rounded bg-slate-100 px-2 py-1">
-              Русский
-            </span>
-            <span className="rounded bg-slate-100 px-2 py-1">
-              中文
-            </span>
+            <Link href="/partner/register">
+              Partner Registration
+            </Link>
           </div>
         </div>
       </div>
