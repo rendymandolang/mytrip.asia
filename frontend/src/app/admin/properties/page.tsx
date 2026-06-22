@@ -29,6 +29,25 @@ function arrayToLines(value: any) {
   return Array.isArray(value) ? value.join("\n") : "";
 }
 
+function approvalStatusBadge(status: string) {
+  const base =
+    "rounded px-3 py-1 text-xs font-semibold";
+
+  if (status === "APPROVED") {
+    return `${base} bg-emerald-100 text-emerald-700`;
+  }
+
+  if (status === "REJECTED") {
+    return `${base} bg-rose-100 text-rose-700`;
+  }
+
+  if (status === "PENDING_REVIEW") {
+    return `${base} bg-amber-100 text-amber-700`;
+  }
+
+  return `${base} bg-slate-100 text-slate-700`;
+}
+
 export default function PropertiesPage() {
   const [properties, setProperties] = useState<any[]>([]);
   const [destinations, setDestinations] = useState<any[]>([]);
@@ -687,17 +706,33 @@ export default function PropertiesPage() {
                   ({property.reviewCount || 0})
                 </td>
                 <td className="p-4">
-                  <span
-                    className={`rounded px-3 py-1 text-sm font-semibold ${
-                      property.isPublished
-                        ? "bg-green-100 text-green-700"
-                        : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {property.isPublished
-                      ? "Published"
-                      : "Draft"}
-                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    <span
+                      className={`rounded px-3 py-1 text-xs font-semibold ${
+                        property.isPublished
+                          ? "bg-green-100 text-green-700"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {property.isPublished
+                        ? "Published"
+                        : "Not Published"}
+                    </span>
+                    <span
+                      className={approvalStatusBadge(
+                        property.approvalStatus ||
+                          "APPROVED",
+                      )}
+                    >
+                      {property.approvalStatus ||
+                        "APPROVED"}
+                    </span>
+                  </div>
+                  {property.approvalNote && (
+                    <div className="mt-2 max-w-xs text-xs text-slate-500">
+                      {property.approvalNote}
+                    </div>
+                  )}
                 </td>
                 <td className="p-4">
                   <div className="flex gap-2">

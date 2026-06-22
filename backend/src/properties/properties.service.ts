@@ -16,6 +16,15 @@ export class PropertiesService {
         fullName: true,
         email: true,
         role: true,
+        accountStatus: true,
+      },
+    },
+    reviewedBy: {
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
       },
     },
     destination: true,
@@ -43,6 +52,32 @@ export class PropertiesService {
       orderBy: {
         id: 'desc',
       },
+    });
+  }
+
+  async findReviewRequests(status?: string) {
+    const normalizedStatus =
+      String(status || 'PENDING_REVIEW')
+        .toUpperCase()
+        .trim();
+    const where: any =
+      normalizedStatus === 'ALL'
+        ? {}
+        : {
+            approvalStatus: normalizedStatus,
+          };
+
+    return this.prisma.property.findMany({
+      where,
+      include: this.propertyInclude,
+      orderBy: [
+        {
+          submittedAt: 'desc',
+        },
+        {
+          createdAt: 'desc',
+        },
+      ],
     });
   }
 
@@ -78,6 +113,55 @@ export class PropertiesService {
   async create(data: any) {
     return this.prisma.property.create({
       data: await this.normalizePropertyData(data),
+      include: this.propertyInclude,
+    });
+  }
+
+  async approve(
+    id: number,
+    actorUserId?: number,
+    reviewNote?: string,
+  ) {
+    await this.findOne(id);
+
+    return this.prisma.property.update({
+      where: { id },
+      data: {
+        approvalStatus: 'APPROVED',
+        approvalNote:
+          String(reviewNote || '').trim() || null,
+        reviewedAt: new Date(),
+        reviewedById: actorUserId || null,
+        isPublished: true,
+      },
+      include: this.propertyInclude,
+    });
+  }
+
+  async reject(
+    id: number,
+    actorUserId?: number,
+    reviewNote?: string,
+  ) {
+    await this.findOne(id);
+
+    const note = String(reviewNote || '').trim();
+
+    if (!note) {
+      throw new BadRequestException(
+        'Review note is required',
+      );
+    }
+
+    return this.prisma.property.update({
+      where: { id },
+      data: {
+        approvalStatus: 'REJECTED',
+        approvalNote: note,
+        reviewedAt: new Date(),
+        reviewedById: actorUserId || null,
+        isPublished: false,
+      },
       include: this.propertyInclude,
     });
   }
@@ -247,6 +331,17 @@ export class PropertiesService {
     if (data.isPublished !== undefined) {
       propertyData.isPublished =
         this.toBoolean(data.isPublished);
+    }
+
+    if (data.approvalStatus !== undefined) {
+      propertyData.approvalStatus =
+        data.approvalStatus;
+    }
+
+    if (data.approvalNote !== undefined) {
+      propertyData.approvalNote =
+        String(data.approvalNote || '').trim() ||
+        null;
     }
 
     return propertyData;

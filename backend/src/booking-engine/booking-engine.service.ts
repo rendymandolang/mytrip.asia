@@ -261,10 +261,12 @@ export class BookingEngineService {
                 'propertyId',
               ),
               isPublished: true,
+              approvalStatus: 'APPROVED',
             }
           : {
               slug,
               isPublished: true,
+              approvalStatus: 'APPROVED',
             },
       });
 

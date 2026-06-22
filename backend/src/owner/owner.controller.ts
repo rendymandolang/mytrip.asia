@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Post,
   Put,
   Req,
   UseGuards,
@@ -28,6 +29,17 @@ export class OwnerController {
     );
   }
 
+  @Post('properties')
+  createProperty(
+    @Req() request: any,
+    @Body() body: any,
+  ) {
+    return this.ownerService.createProperty(
+      Number(request.user?.sub),
+      body,
+    );
+  }
+
   @Get('properties/:id')
   property(
     @Req() request: any,
@@ -46,6 +58,43 @@ export class OwnerController {
     @Body() body: any,
   ) {
     return this.ownerService.updateProperty(
+      Number(request.user?.sub),
+      Number(id),
+      body,
+    );
+  }
+
+  @Post('properties/:id/submit-review')
+  submitPropertyForReview(
+    @Req() request: any,
+    @Param('id') id: string,
+  ) {
+    return this.ownerService.submitPropertyForReview(
+      Number(request.user?.sub),
+      Number(id),
+    );
+  }
+
+  @Post('properties/:id/room-types')
+  createRoomType(
+    @Req() request: any,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.ownerService.createRoomType(
+      Number(request.user?.sub),
+      Number(id),
+      body,
+    );
+  }
+
+  @Post('properties/:id/rooms')
+  createRoom(
+    @Req() request: any,
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.ownerService.createRoom(
       Number(request.user?.sub),
       Number(id),
       body,

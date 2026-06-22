@@ -12,6 +12,10 @@ export default function AdminPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [approvalRequests, setApprovalRequests] =
     useState<any[]>([]);
+  const [
+    propertyApprovalRequests,
+    setPropertyApprovalRequests,
+  ] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -50,6 +54,7 @@ export default function AdminPage() {
         roomsResponse,
         bookingsResponse,
         approvalsResponse,
+        propertyApprovalsResponse,
       ] = await Promise.all([
         fetch("/api/properties", { headers }),
         fetch("/api/rooms", { headers }),
@@ -58,13 +63,18 @@ export default function AdminPage() {
           "/api/bookings/change-requests?status=PENDING",
           { headers },
         ),
+        fetch(
+          "/api/properties/review-requests/list?status=PENDING_REVIEW",
+          { headers },
+        ),
       ]);
 
       if (
         !propertiesResponse.ok ||
         !roomsResponse.ok ||
         !bookingsResponse.ok ||
-        !approvalsResponse.ok
+        !approvalsResponse.ok ||
+        !propertyApprovalsResponse.ok
       ) {
         throw new Error(
           "Failed to load dashboard data",
@@ -76,17 +86,22 @@ export default function AdminPage() {
         roomsData,
         bookingsData,
         approvalsData,
+        propertyApprovalsData,
       ] = await Promise.all([
         propertiesResponse.json(),
         roomsResponse.json(),
         bookingsResponse.json(),
         approvalsResponse.json(),
+        propertyApprovalsResponse.json(),
       ]);
 
       setProperties(propertiesData);
       setRooms(roomsData);
       setBookings(bookingsData);
       setApprovalRequests(approvalsData);
+      setPropertyApprovalRequests(
+        propertyApprovalsData,
+      );
     } catch (loadError) {
       console.error(loadError);
       setError("Dashboard data could not be loaded");
@@ -217,6 +232,13 @@ export default function AdminPage() {
             </Link>
 
             <Link
+              href="/admin/property-approvals"
+              className="rounded bg-slate-700 px-4 py-2 text-white"
+            >
+              Property Reviews
+            </Link>
+
+            <Link
               href="/admin/users"
               className="rounded bg-slate-700 px-4 py-2 text-white"
             >
@@ -263,7 +285,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        <div className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
           <div className="rounded-lg bg-white p-5 shadow">
             <div className="text-sm text-slate-500">
               Properties
@@ -293,10 +315,21 @@ export default function AdminPage() {
 
           <div className="rounded-lg bg-white p-5 shadow">
             <div className="text-sm text-slate-500">
-              Pending Approvals
+              Booking Approvals
             </div>
             <div className="mt-2 text-3xl font-bold">
               {loading ? "-" : approvalRequests.length}
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-white p-5 shadow">
+            <div className="text-sm text-slate-500">
+              Property Reviews
+            </div>
+            <div className="mt-2 text-3xl font-bold">
+              {loading
+                ? "-"
+                : propertyApprovalRequests.length}
             </div>
           </div>
 
@@ -436,6 +469,18 @@ export default function AdminPage() {
             </h2>
             <p className="mt-2 text-sm text-slate-500">
               Manage hotels, villas and resorts
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/property-approvals"
+            className="rounded-lg bg-white p-6 shadow transition hover:shadow-lg"
+          >
+            <h2 className="text-xl font-bold">
+              Property Approvals
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Review partner property submissions
             </p>
           </Link>
 

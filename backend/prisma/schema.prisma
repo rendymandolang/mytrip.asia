@@ -31,6 +31,13 @@ enum PropertyType {
   CO_LIVING
 }
 
+enum PropertyApprovalStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
 enum RentalTerm {
   DAILY
   MONTHLY
@@ -138,6 +145,7 @@ model User {
 
   accountReviewedBy User? @relation("AccountReviewedBy", fields: [accountReviewedById], references: [id], onDelete: SetNull)
   reviewedAccounts User[] @relation("AccountReviewedBy")
+  reviewedProperties Property[] @relation("PropertyReviewedBy")
   bookings  Booking[]
   ownedProperties Property[] @relation("PropertyOwner")
   uploadedMedia MediaAsset[] @relation("MediaUploader")
@@ -159,6 +167,11 @@ model Property {
   propertyType PropertyType
   supportedRentalTerms RentalTerm[] @default([DAILY])
   ownerId      Int?
+  approvalStatus PropertyApprovalStatus @default(APPROVED)
+  approvalNote String?
+  submittedAt DateTime?
+  reviewedAt DateTime?
+  reviewedById Int?
   destinationId Int?
   timezone     String       @default("Asia/Jakarta")
   currency     String       @default("IDR")
@@ -179,6 +192,7 @@ model Property {
   isPublished  Boolean      @default(true)
 
   owner        User?        @relation("PropertyOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  reviewedBy   User?        @relation("PropertyReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
   destination  Destination? @relation(fields: [destinationId], references: [id], onDelete: SetNull)
   allotments   Allotment[]
   rooms        Room[]
@@ -191,6 +205,8 @@ model Property {
   createdAt    DateTime @default(now())
 
   @@index([ownerId])
+  @@index([approvalStatus])
+  @@index([reviewedById])
   @@index([destinationId])
   @@index([propertyType])
   @@index([city])

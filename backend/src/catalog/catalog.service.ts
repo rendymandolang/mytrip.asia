@@ -49,6 +49,7 @@ export class CatalogService {
   async properties(query: any) {
     const where: any = {
       isPublished: true,
+      approvalStatus: 'APPROVED',
     };
 
     if (query.destinationId) {
@@ -158,6 +159,7 @@ export class CatalogService {
         where: {
           ...where,
           isPublished: true,
+          approvalStatus: 'APPROVED',
         },
         include: this.propertyInclude,
       });
